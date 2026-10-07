@@ -1,9 +1,10 @@
 // Board geometry + connectivity. Hole ids: "m:col:row" (row 0-9 = a-j) or "r:rail:idx" (rail 0-3).
 import type { El } from './solver';
-export const COLS = 30, RAIL_HOLES = 25;
+export const COLS = 30, RAIL_HOLES = 30; // per rail: 15 left half + 15 right half, one hole per column
 export const strip = (h: string) => {
   const [k, a, b] = h.split(':');
-  return k === 'r' ? `rail${a}` : `c${a}${+b < 5 ? 'T' : 'B'}`; // a-e joined, f-j joined (gap in the middle)
+  return k === 'r' ? `rail${a}${+b < 15 ? 'L' : 'R'}` : // each rail is split into separate left/right halves
+    `c${a}${+b < 5 ? 'T' : 'B'}`; // a-e joined, f-j joined (gap in the middle)
 };
 export type Part =
   | { kind: 'R' | 'C' | 'V' | 'LED' | 'D'; pins: [string, string]; value: number }
