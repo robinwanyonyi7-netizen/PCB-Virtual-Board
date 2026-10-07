@@ -61,7 +61,10 @@ export function solve(els: El[], n: number, prev?: number[], dt = 0): Result {
     let delta = 0;
     xn.forEach((val, i) => (delta = Math.max(delta, Math.abs(val - x[i]))));
     els.forEach((e, k) => { // limited diode voltage update for Newton stability
-      if (e.t === 'D') vd[k] += Math.max(-0.3, Math.min(0.3, volt(xn, e.a) - volt(xn, e.b) - vd[k]));
+      if (e.t !== 'D') return;
+      const want = volt(xn, e.a) - volt(xn, e.b) - vd[k];
+      delta = Math.max(delta, Math.abs(want)); // not converged until diode voltage settles
+      vd[k] += Math.max(-0.3, Math.min(0.3, want));
     });
     x = xn;
     ok = delta < 1e-9 && it > 0;
