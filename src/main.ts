@@ -1,9 +1,9 @@
 import { COLS, RAIL_HOLES, buildNetlist, type Part } from './breadboard';
 import { solve } from './solver';
 const P = 22, X0 = 30, MY0 = 92, NS = 'http://www.w3.org/2000/svg';
-const tools = ['R', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT'] as const;
+const tools = ['R', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE'] as const;
 type Tool = (typeof tools)[number];
-const defaults: Record<Tool, number> = { R: 330, LED: 0, D: 0, C: 1e-6, V: 5, WIRE: 0, SELECT: 0 };
+const defaults: Record<Tool, number> = { R: 330, LED: 0, D: 0, C: 1e-6, V: 5, WIRE: 0, SELECT: 0, ERASE: 0 };
 let tool: Tool = 'R', first: string | null = null;
 let sel: Part | null = null, selEnd: number | null = null; // Select tool: chosen part, and which end (0/1) is being moved
 const parts: Part[] = [];
@@ -12,7 +12,21 @@ const W = X0 * 2 + (COLS - 1) * P, H = 412;
 // Each rail is split in two halves (columns 1-15 | 16-30): one rail hole per column, lined up with the grid.
 const railX = (i: number) => X0 + i * P;
 const railY = (rail: number) => (rail < 2 ? 30 + rail * P : 360 + (rail - 2) * P);
-svg.style.cssText = 'display:block;margin:12px auto;width:calc(100% - 24px);max-width:520px;height:auto'; // board size: change max-width
+// Zoom = screen px per board unit. Phones start larger so holes are finger-sized; the board scrolls inside #app.
+const ZOOMS = [0.6, 0.75, 1, 1.3, 1.8, 2.4];
+let zi = (() => {
+  try { const v = localStorage.getItem('vb.zoom'); if (v !== null && Number.isInteger(+v) && +v >= 0 && +v < ZOOMS.length) return +v; } catch { /* ignore */ }
+  return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 3 : 1;
+})();
+svg.style.cssText = `display:block;margin:0 auto;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;width:${Math.round(W * ZOOMS[zi])}px`;
+function applyZoom(i: number) { // zoom while keeping the same board point in the middle of the view
+  const wrap = svg.parentElement!, old = svg.getBoundingClientRect().width || 1;
+  const cx = (wrap.scrollLeft + wrap.clientWidth / 2) / old;
+  zi = Math.max(0, Math.min(ZOOMS.length - 1, i));
+  svg.style.width = `${Math.round(W * ZOOMS[zi])}px`;
+  wrap.scrollLeft = cx * W * ZOOMS[zi] - wrap.clientWidth / 2;
+  try { localStorage.setItem('vb.zoom', String(zi)); } catch { /* ignore */ }
+}
 svg.setAttribute('viewBox', `0 0 ${W} ${H}`); // scales with the page; holes always stay inside the board
 document.getElementById('app')!.append(svg);
 const pos = new Map<string, [number, number]>();
@@ -23,7 +37,9 @@ for (const [y1, y2] of [[railY(0) - 12, railY(1) + 12], [railY(2) - 12, railY(3)
 const layer = add('g', {});
 const hole = (id: string, x: number, y: number) => {
   pos.set(id, [x, y]);
-  add('circle', { cx: x, cy: y, r: 5, fill: '#333', style: 'cursor:pointer' }).addEventListener('click', () => click(id));
+  const go = () => click(id);
+  add('circle', { cx: x, cy: y, r: 11, fill: 'transparent', style: 'cursor:pointer' }).addEventListener('click', go); // big invisible tap target (half the hole pitch) for fingers
+  add('circle', { cx: x, cy: y, r: 5, fill: '#333', 'pointer-events': 'none' }).addEventListener('click', go);
 };
 for (let c = 0; c < COLS; c++) for (let r = 0; r < 10; r++) hole(`m:${c}:${r}`, X0 + c * P, MY0 + r * P + (r > 4 ? 30 : 0));
 for (let rail = 0; rail < 4; rail++) for (let i = 0; i < RAIL_HOLES; i++)
@@ -36,26 +52,30 @@ svg.append(layer); // re-append so parts/wires draw above the holes (SVG z-order
 layer.setAttribute('pointer-events', 'none'); // clicks still reach the holes underneath
 const bar = document.getElementById('bar')!, out = document.getElementById('out')!;
 const btn = (label: string, fn: () => void) => { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; bar.append(b); return b; };
-const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value, move an end, or delete it.' };
+const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value or move an end. To remove a part, use Erase.', ERASE: 'Eraser: click, or drag across, a part to remove the whole part.' };
 const valIn = document.createElement('input'); // part value box (replaces prompt(), which browsers can block)
 valIn.style.cssText = 'width:80px;padding:5px;border-radius:4px;border:0'; valIn.title = 'Value: 4700, 4.7k, 100n, 1e-6 ...';
 const num = (t: string) => { const m = t.trim().match(/^([\d.]+(?:e[+-]?\d+)?)\s*([pnuµmkM]?)/i); if (!m) return NaN; return +m[1] * ({ p: 1e-12, n: 1e-9, u: 1e-6, µ: 1e-6, m: 1e-3, k: 1e3, M: 1e6 } as Record<string, number>)[m[2]] || +m[1]; };
-tools.forEach(t => { const b = btn(t === 'SELECT' ? 'Select' : t, () => { tool = t; first = null; sel = null; selEnd = null; redraw(); valIn.value = defaults[t] ? String(defaults[t]) : ''; valIn.disabled = !defaults[t]; out.textContent = hint[t]; bar.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }); });
+tools.forEach(t => { const b = btn(t === 'SELECT' ? 'Select' : t === 'ERASE' ? 'Erase' : t, () => { tool = t; first = null; sel = null; selEnd = null; redraw(); valIn.value = defaults[t] ? String(defaults[t]) : ''; valIn.disabled = !defaults[t]; out.textContent = hint[t]; bar.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }); });
 bar.append(valIn); valIn.value = String(defaults.R);
+const eraserBtn = bar.querySelectorAll('button')[tools.indexOf('ERASE')];
+eraserBtn.title = 'Eraser'; eraserBtn.setAttribute('aria-label', 'Eraser');
+eraserBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>';
 btn('Undo', () => undo());
-btn('Delete', () => del());
-btn('Run DC', () => run());
+btn('Run DC', () => run()).classList.add('run');
 btn('Clear', () => { parts.length = 0; redraw(); out.textContent = 'Cleared.'; });
+btn('−', () => applyZoom(zi - 1)).title = 'Zoom out';
+btn('+', () => applyZoom(zi + 1)).title = 'Zoom in';
+function erasePart(p: Part) { // the eraser removes the WHOLE part, like the eraser in Paint removes what it touches
+  const i = parts.indexOf(p); if (i < 0) return;
+  parts.splice(i, 1); if (p === sel) { sel = null; selEnd = null; }
+  redraw(); out.textContent = `Erased the ${p.kind}.`;
+}
 function select(p: Part) {
   sel = p; selEnd = null;
   const ed = p.kind !== 'WIRE' && p.value > 0;
   valIn.disabled = !ed; valIn.value = ed ? String(p.value) : ''; redraw();
-  out.textContent = `Selected ${p.kind}.` + (ed ? ' Edit the value above (press Enter),' : '') + ' click an end ring then a new hole to move it, or press Delete.';
-}
-function del() {
-  if (!sel) { out.textContent = 'Select a part first (Select tool), then Delete.'; return; }
-  const k = sel.kind; parts.splice(parts.indexOf(sel), 1); sel = null; selEnd = null;
-  valIn.value = ''; valIn.disabled = tool === 'SELECT'; redraw(); out.textContent = `Deleted the ${k}.`;
+  out.textContent = `Selected ${p.kind}.` + (ed ? ' Edit the value above (press Enter),' : '') + ' click an end ring then a new hole to move it. To remove a part, use Erase.';
 }
 valIn.addEventListener('change', () => { // edit the selected part's value
   if (tool !== 'SELECT' || !sel || sel.kind === 'WIRE' || !sel.value) return;
@@ -73,11 +93,15 @@ function undo() { // Esc / Ctrl+Z: cancel a half-made placement first, otherwise
 }
 document.addEventListener('keydown', e => {
   if (e.target instanceof HTMLInputElement) return; // let the value box keep its own undo
-  if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); del(); return; }
   if (e.key === 'Escape' && sel) { sel = null; selEnd = null; redraw(); return; }
   if (e.key === 'Escape' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z')) { e.preventDefault(); undo(); }
 });
+function describe(id: string) { // plain-language hole name, so you can confirm a tap landed where you meant
+  const [k, a, b] = id.split(':');
+  return k === 'm' ? `column ${+a + 1}, row ${+b + 1}` : `${+a < 2 ? 'top' : 'bottom'} ${+a % 2 ? '−' : '+'} rail, column ${+b + 1}`;
+}
 function click(id: string) {
+  if (tool === 'ERASE') return; // erasing is done by clicking / dragging over a part, not by its holes
   if (tool === 'SELECT') { // move the chosen end of the selected part to this hole
     if (sel && selEnd !== null) {
       if (sel.pins[1 - selEnd] === id) { out.textContent = '⚠ Both ends cannot be in the same hole.'; return; }
@@ -85,11 +109,12 @@ function click(id: string) {
     }
     return;
   }
-  if (!first) { first = id; redraw(); return; }
+  if (!first) { first = id; redraw(); out.textContent = `Start: ${describe(id)}. Now tap the second hole (Undo cancels).`; return; }
   if (first !== id) {
     let value = defaults[tool];
     if (tool === 'R' || tool === 'C' || tool === 'V') { const n = num(valIn.value); if (!(n > 0)) { out.textContent = '⚠ Enter a valid value (e.g. 330, 4.7k, 100n).'; first = null; redraw(); return; } value = n; }
     parts.push({ kind: tool, pins: [first, id], value } as Part);
+    out.textContent = `Placed ${tool === 'WIRE' ? 'wire' : tool} from ${describe(first)} to ${describe(id)}.`;
   }
   first = null; redraw();
 }
@@ -99,6 +124,13 @@ function redraw(glow = new Map<Part, number>()) {
   layer.replaceChildren();
   parts.forEach(p => {
     const [x1, y1] = pos.get(p.pins[0])!, [x2, y2] = pos.get(p.pins[1])!;
+    if (tool === 'ERASE') { // fat invisible hit area so thin wires are easy to catch; click or drag over a part erases it
+      const hit = add('line', { x1, y1, x2, y2, stroke: 'transparent', 'stroke-width': 16, 'stroke-linecap': 'round', 'pointer-events': 'stroke', style: 'cursor:pointer' }, layer);
+      hit.addEventListener('pointerdown', ev => { ev.preventDefault(); erasePart(p); });
+      hit.addEventListener('click', () => erasePart(p));
+      hit.addEventListener('pointerenter', ev => { if (ev.buttons & 1) erasePart(p); else hit.setAttribute('stroke', 'rgba(255,107,107,.45)'); }); // drag-erase / hover preview
+      hit.addEventListener('pointerleave', () => hit.setAttribute('stroke', 'transparent'));
+    }
     const pick = tool === 'SELECT' && selEnd === null;
     if (p === sel) add('line', { x1, y1, x2, y2, stroke: '#2f81f7', 'stroke-width': 16, 'stroke-linecap': 'round', opacity: 0.35 }, layer);
     const ln = add('line', { x1, y1, x2, y2, stroke: colors[p.kind], 'stroke-width': p.kind === 'WIRE' ? 3 : 8, 'stroke-linecap': 'round', opacity: p.kind === 'LED' ? 0.35 + (glow.get(p) ?? 0) * 0.65 : 1, 'pointer-events': pick ? 'stroke' : 'none', style: pick ? 'cursor:pointer' : '' }, layer);

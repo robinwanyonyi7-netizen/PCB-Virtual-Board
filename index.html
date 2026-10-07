@@ -1,7 +1,81 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Virtual Breadboard</title>
-<style>body{font-family:system-ui;margin:0;background:#1b1f24;color:#e6e6e6}
-#bar{padding:8px;display:flex;justify-content:center;gap:6px;align-items:center;background:#11151a}
-button{padding:6px 10px;border:0;border-radius:4px;background:#2d3641;color:#fff;cursor:pointer}
-button.on{background:#2f81f7}pre{max-width:520px;margin:8px auto;padding:0 12px;font-size:13px}svg{display:block;margin:8px;background:#e8e2d0;border-radius:6px}</style></head>
-<body><div id="bar"></div><div id="app"></div><pre id="out">Pick a tool, click two holes to place it. Add a Battery, then Run.</pre>
-<script type="module" src="/src/main.ts"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14181d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Virtual Breadboard</title>
+<style>
+  :root { --bg:#14181d; --panel:#1d232b; --line:#2c3541; --text:#e6e9ee; --muted:#8b95a3; --accent:#2f81f7; --ok:#2a9d4b; --bad:#d64545; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(1200px 600px at 50% -10%, #1f2833, var(--bg)); color:var(--text); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:min(100%,1000px); margin:0 auto; padding:20px 12px 32px; }
+  header { text-align:center; margin-bottom:14px; }
+  h1 { margin:0; font-size:22px; letter-spacing:.3px; }
+  header p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+  #bar { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px; padding:10px; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+  button { padding:7px 12px; border:1px solid var(--line); border-radius:8px; background:#2a323d; color:var(--text); font:inherit; font-weight:600; cursor:pointer; transition:background .12s, color .12s, transform .05s, border-color .12s; }
+  button:hover { background:#344050; border-color:#42505f; }
+  button:active { transform:translateY(1px); }
+  button.on { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 0 0 2px rgba(47,129,247,.3); }
+  /* tool badges = the first 8 buttons (R, LED, D, C, V, WIRE, Select, Erase): neutral button + colour indicator; hover/active inverts it */
+  #bar button:nth-of-type(-n+8) { --c:#8b95a3; --ct:#14181d; }
+  #bar button:nth-of-type(1) { --c:#c9a227; }
+  #bar button:nth-of-type(2) { --c:#e5383b; --ct:#fff; }
+  #bar button:nth-of-type(3) { --c:#8a929c; }
+  #bar button:nth-of-type(4) { --c:#2f81f7; --ct:#fff; }
+  #bar button:nth-of-type(5) { --c:#2a9d4b; --ct:#fff; }
+  #bar button:nth-of-type(6) { --c:#e6e9ee; }
+  #bar button:nth-of-type(8) { --c:#ff6b6b; color:var(--c); padding:7px 10px; }  /* eraser: icon only, no colour bar */
+  #bar button:nth-of-type(8)::before { display:none !important; }
+  #bar button:nth-of-type(-n+8)::before { content:''; display:inline-block; width:14px; height:6px; margin-right:7px; vertical-align:middle; border-radius:3px; background:var(--c); transition:background .12s; }
+  #bar button:nth-of-type(-n+8):hover, #bar button.on:nth-of-type(-n+8) { background:var(--c); color:var(--ct); border-color:var(--c); }
+  #bar button:nth-of-type(-n+8):hover::before, #bar button.on:nth-of-type(-n+8)::before { background:var(--ct); }
+  #bar button.on:nth-of-type(-n+8) { box-shadow:0 0 0 2px color-mix(in srgb, var(--c) 35%, transparent); }
+  #bar input { width:84px; padding:7px 8px; margin:0 8px 0 4px; border:1px solid var(--line); border-radius:8px; background:#10141a; color:var(--text); font:inherit; text-align:center; }
+  #bar input:focus { outline:2px solid var(--accent); border-color:transparent; }
+  #bar input:disabled { opacity:.4; }
+  #bar input ~ button { background:transparent; }          /* action buttons (after the value box) */
+  #bar input ~ button:hover { background:#2a323d; }
+  #bar input ~ button.run { background:var(--ok); border-color:var(--ok); color:#fff; } /* Run DC */
+  #bar input ~ button.run:hover { background:var(--ok); filter:brightness(1.1); }
+  #app { overflow:auto; max-width:100%; margin:12px 0 6px; padding:4px 4px 20px; -webkit-overflow-scrolling:touch; }  /* the board scrolls inside here when zoomed */
+  svg { filter:drop-shadow(0 10px 22px rgba(0,0,0,.45)); }
+  #out { margin:6px auto 0; padding:12px 14px; max-width:520px; min-height:64px; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; color:var(--text); font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space:pre-wrap; }
+  .legend { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 14px; margin:14px 0 0; color:var(--muted); font-size:12px; }
+  .legend i { display:inline-block; width:18px; height:6px; border-radius:3px; margin-right:5px; vertical-align:middle; }
+  .legend b { color:var(--text); font-weight:600; }
+  body, button { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  @media (pointer:coarse) { /* phones / tablets: finger-sized controls */
+    button { min-height:44px; min-width:44px; font-size:15px; }
+    #bar { gap:8px; padding:10px 8px; }
+    #bar input { min-height:44px; width:92px; font-size:16px; } /* 16px stops iOS zooming the page on focus */
+    #out { font-size:14px; }
+  }
+  @media (max-width:480px) { h1 { font-size:19px; } button { padding:6px 9px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Virtual Breadboard</h1>
+    <p>Place parts, wire them up, and run the circuit before you build it.</p>
+  </header>
+  <div id="bar"></div>
+  <div id="app"></div>
+  <pre id="out">Pick a tool, click two holes to place it. Add a Battery, then Run DC.</pre>
+  <div class="legend">
+    <span><i style="background:#c9a227"></i>Resistor</span>
+    <span><i style="background:#e5383b"></i>LED</span>
+    <span><i style="background:#555"></i>Diode</span>
+    <span><i style="background:#2f81f7"></i>Capacitor</span>
+    <span><i style="background:#2a9d4b"></i>Battery</span>
+    <span><i style="background:#111;border:1px solid #666"></i>Wire</span>
+    <span><b>A</b> anode · <b>K</b> cathode</span>
+  </div>
+</main>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
