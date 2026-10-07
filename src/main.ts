@@ -1,9 +1,10 @@
 import { COLS, RAIL_HOLES, buildNetlist, type Part } from './breadboard';
 import { solve } from './solver';
+import { initGraph } from './graph';
 const P = 22, X0 = 30, MY0 = 92, NS = 'http://www.w3.org/2000/svg';
-const tools = ['R', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE'] as const;
+const tools = ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE'] as const;
 type Tool = (typeof tools)[number];
-const defaults: Record<Tool, number> = { R: 330, LED: 0, D: 0, C: 1e-6, V: 5, WIRE: 0, SELECT: 0, ERASE: 0 };
+const defaults: Record<Tool, number> = { R: 330, L: 0.01, LED: 0, D: 0, C: 1e-6, V: 5, WIRE: 0, SELECT: 0, ERASE: 0 };
 let tool: Tool = 'R', first: string | null = null;
 let sel: Part | null = null, selEnd: number | null = null; // Select tool: chosen part, and which end (0/1) is being moved
 const parts: Part[] = [];
@@ -52,7 +53,7 @@ svg.append(layer); // re-append so parts/wires draw above the holes (SVG z-order
 layer.setAttribute('pointer-events', 'none'); // clicks still reach the holes underneath
 const bar = document.getElementById('bar')!, out = document.getElementById('out')!;
 const btn = (label: string, fn: () => void) => { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; bar.append(b); return b; };
-const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value or move an end. To remove a part, use Erase.', ERASE: 'Eraser: click, or drag across, a part to remove the whole part.' };
+const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', L: 'Inductor (henries, e.g. 10m): acts like a wire in DC; matters in the time and frequency graphs.', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value or move an end. To remove a part, use Erase.', ERASE: 'Eraser: click, or drag across, a part to remove the whole part.' };
 const valIn = document.createElement('input'); // part value box (replaces prompt(), which browsers can block)
 valIn.style.cssText = 'width:80px;padding:5px;border-radius:4px;border:0'; valIn.title = 'Value: 4700, 4.7k, 100n, 1e-6 ...';
 const num = (t: string) => { const m = t.trim().match(/^([\d.]+(?:e[+-]?\d+)?)\s*([pnuµmkM]?)/i); if (!m) return NaN; return +m[1] * ({ p: 1e-12, n: 1e-9, u: 1e-6, µ: 1e-6, m: 1e-3, k: 1e3, M: 1e6 } as Record<string, number>)[m[2]] || +m[1]; };
@@ -112,13 +113,13 @@ function click(id: string) {
   if (!first) { first = id; redraw(); out.textContent = `Start: ${describe(id)}. Now tap the second hole (Undo cancels).`; return; }
   if (first !== id) {
     let value = defaults[tool];
-    if (tool === 'R' || tool === 'C' || tool === 'V') { const n = num(valIn.value); if (!(n > 0)) { out.textContent = '⚠ Enter a valid value (e.g. 330, 4.7k, 100n).'; first = null; redraw(); return; } value = n; }
+    if (tool === 'R' || tool === 'L' || tool === 'C' || tool === 'V') { const n = num(valIn.value); if (!(n > 0)) { out.textContent = '⚠ Enter a valid value (e.g. 330, 4.7k, 100n).'; first = null; redraw(); return; } value = n; }
     parts.push({ kind: tool, pins: [first, id], value } as Part);
     out.textContent = `Placed ${tool === 'WIRE' ? 'wire' : tool} from ${describe(first)} to ${describe(id)}.`;
   }
   first = null; redraw();
 }
-const colors: Record<string, string> = { R: '#c9a227', LED: '#e5383b', D: '#555', C: '#2f81f7', V: '#2a9d4b', WIRE: '#111' };
+const colors: Record<string, string> = { R: '#c9a227', L: '#9b5de5', LED: '#e5383b', D: '#555', C: '#2f81f7', V: '#2a9d4b', WIRE: '#111' };
 function redraw(glow = new Map<Part, number>()) {
   save();
   layer.replaceChildren();
@@ -165,9 +166,12 @@ function load() {
     if (!Array.isArray(raw)) return;
     raw.forEach(p => { // keep only parts whose holes still exist on the current board layout
       const ok = p && Array.isArray(p.pins) && p.pins.length === 2 && p.pins.every((h: unknown) => typeof h === 'string' && pos.has(h)) && p.pins[0] !== p.pins[1]
-        && ['R', 'LED', 'D', 'C', 'V', 'WIRE'].includes(p.kind) && typeof p.value === 'number';
+        && ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE'].includes(p.kind) && typeof p.value === 'number';
       if (ok) parts.push({ kind: p.kind, pins: [p.pins[0], p.pins[1]], value: p.value } as Part);
     });
   } catch { /* corrupt data: start empty */ }
 }
+const short = (id: string) => { const [k, a, b] = id.split(':'); return k === 'm' ? `c${+a + 1}r${+b + 1}` : `${+a < 2 ? 'top' : 'bot'}${+a % 2 ? '−' : '+'}${+b + 1}`; };
+const gRoot = document.getElementById('graph');
+if (gRoot) initGraph(gRoot, { parts: () => parts, label: p => `${p.kind}${p.value ? ' ' + p.value : ''} (${short(p.pins[0])} → ${short(p.pins[1])})` });
 load(); redraw();

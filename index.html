@@ -20,16 +20,9 @@
   button:hover { background:#344050; border-color:#42505f; }
   button:active { transform:translateY(1px); }
   button.on { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 0 0 2px rgba(47,129,247,.3); }
-  /* tool badges = the first 8 buttons (R, LED, D, C, V, WIRE, Select, Erase): neutral button + colour indicator; hover/active inverts it */
-  #bar button:nth-of-type(-n+8) { --c:#8b95a3; --ct:#14181d; }
-  #bar button:nth-of-type(1) { --c:#c9a227; }
-  #bar button:nth-of-type(2) { --c:#e5383b; --ct:#fff; }
-  #bar button:nth-of-type(3) { --c:#8a929c; }
-  #bar button:nth-of-type(4) { --c:#2f81f7; --ct:#fff; }
-  #bar button:nth-of-type(5) { --c:#2a9d4b; --ct:#fff; }
-  #bar button:nth-of-type(6) { --c:#e6e9ee; }
-  #bar button:nth-of-type(8) { --c:#ff6b6b; color:var(--c); padding:7px 10px; }  /* eraser: icon only, no colour bar */
-  #bar button:nth-of-type(8)::before { display:none !important; }
+  /* tool badges = the first 9 buttons (R, L, LED, D, C, V, WIRE, Select, Eraser): neutral button + colour indicator; hover/active inverts it */
+  #bar button:nth-of-type(-n+9) { --c:#8b95a3; --ct:#14181d; }
+  #bar button:nth-of-type(9)::before { display:none !important; }
   #bar button:nth-of-type(-n+8)::before { content:''; display:inline-block; width:14px; height:6px; margin-right:7px; vertical-align:middle; border-radius:3px; background:var(--c); transition:background .12s; }
   #bar button:nth-of-type(-n+8):hover, #bar button.on:nth-of-type(-n+8) { background:var(--c); color:var(--ct); border-color:var(--c); }
   #bar button:nth-of-type(-n+8):hover::before, #bar button.on:nth-of-type(-n+8)::before { background:var(--ct); }
@@ -44,6 +37,17 @@
   #app { overflow:auto; max-width:100%; margin:12px 0 6px; padding:4px 4px 20px; -webkit-overflow-scrolling:touch; }  /* the board scrolls inside here when zoomed */
   svg { filter:drop-shadow(0 10px 22px rgba(0,0,0,.45)); }
   #out { margin:6px auto 0; padding:12px 14px; max-width:520px; min-height:64px; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; color:var(--text); font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space:pre-wrap; }
+  #graph { margin:14px auto 0; max-width:700px; }
+  #graph details { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:0 12px; }
+  #graph summary { cursor:pointer; padding:12px 2px; font-weight:600; }
+  #graph .gbody { padding-bottom:12px; }
+  #graph .gtabs { display:flex; gap:6px; margin-bottom:10px; } #graph .gtabs button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  #graph .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px; }
+  #graph label { display:flex; flex-direction:column; gap:3px; color:var(--muted); font-size:12px; }
+  #graph select, #graph input { padding:7px 8px; border:1px solid var(--line); border-radius:8px; background:#10141a; color:var(--text); font:inherit; min-width:0; }
+  #graph .gact { display:flex; gap:8px; margin:10px 0 6px; } #graph .gact .run { background:var(--ok); border-color:var(--ok); color:#fff; }
+  #graph .gmsg { margin:6px 0; font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; color:var(--text); }
+  @media (pointer:coarse) { #graph select, #graph input { min-height:44px; font-size:16px; } }
   .legend { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 14px; margin:14px 0 0; color:var(--muted); font-size:12px; }
   .legend i { display:inline-block; width:18px; height:6px; border-radius:3px; margin-right:5px; vertical-align:middle; }
   .legend b { color:var(--text); font-weight:600; }
@@ -66,8 +70,10 @@
   <div id="bar"></div>
   <div id="app"></div>
   <pre id="out">Pick a tool, click two holes to place it. Add a Battery, then Run DC.</pre>
+  <section id="graph"></section>
   <div class="legend">
     <span><i style="background:#c9a227"></i>Resistor</span>
+    <span><i style="background:#9b5de5"></i>Inductor</span>
     <span><i style="background:#e5383b"></i>LED</span>
     <span><i style="background:#555"></i>Diode</span>
     <span><i style="background:#2f81f7"></i>Capacitor</span>
