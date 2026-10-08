@@ -1,10 +1,11 @@
 import { COLS, RAIL_HOLES, buildNetlist, type Part } from './breadboard';
 import { solve } from './solver';
 import { initGraph } from './graph';
+import { COMPONENTS, placeHoles, isSimulable } from './components';
 const P = 22, X0 = 30, MY0 = 92, NS = 'http://www.w3.org/2000/svg';
-const tools = ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE'] as const;
+const tools = ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE', 'IC'] as const;
 type Tool = (typeof tools)[number];
-const defaults: Record<Tool, number> = { R: 330, L: 0.01, LED: 0, D: 0, C: 1e-6, V: 5, WIRE: 0, SELECT: 0, ERASE: 0 };
+const defaults: Record<Tool, number> = { R: 330, L: 0.01, LED: 0, D: 0, C: 1e-6, V: 5, WIRE: 0, SELECT: 0, ERASE: 0, IC: 0 };
 let tool: Tool = 'R', first: string | null = null;
 let sel: Part | null = null, selEnd: number | null = null; // Select tool: chosen part, and which end (0/1) is being moved
 const parts: Part[] = [];
@@ -53,12 +54,23 @@ svg.append(layer); // re-append so parts/wires draw above the holes (SVG z-order
 layer.setAttribute('pointer-events', 'none'); // clicks still reach the holes underneath
 const bar = document.getElementById('bar')!, out = document.getElementById('out')!;
 const btn = (label: string, fn: () => void) => { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; bar.append(b); return b; };
-const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', L: 'Inductor (henries, e.g. 10m): acts like a wire in DC; matters in the time and frequency graphs.', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value or move an end. To remove a part, use Erase.', ERASE: 'Eraser: click, or drag across, a part to remove the whole part.' };
+const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', L: 'Inductor (henries, e.g. 10m): acts like a wire in DC; matters in the time and frequency graphs.', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value or move an end. To remove a part, use Erase.', ERASE: 'Eraser: click, or drag across, a part to remove the whole part.', IC: 'Chip: pick a part in the list, then click a hole. DIP chips straddle the centre gap with pin 1 at the clicked column (bottom-left); transistors (TO-92) sit in 3 holes of the clicked row, left to right.' };
 const valIn = document.createElement('input'); // part value box (replaces prompt(), which browsers can block)
 valIn.style.cssText = 'width:80px;padding:5px;border-radius:4px;border:0'; valIn.title = 'Value: 4700, 4.7k, 100n, 1e-6 ...';
 const num = (t: string) => { const m = t.trim().match(/^([\d.]+(?:e[+-]?\d+)?)\s*([pnuµmkM]?)/i); if (!m) return NaN; return +m[1] * ({ p: 1e-12, n: 1e-9, u: 1e-6, µ: 1e-6, m: 1e-3, k: 1e3, M: 1e6 } as Record<string, number>)[m[2]] || +m[1]; };
-tools.forEach(t => { const b = btn(t === 'SELECT' ? 'Select' : t === 'ERASE' ? 'Erase' : t, () => { tool = t; first = null; sel = null; selEnd = null; redraw(); valIn.value = defaults[t] ? String(defaults[t]) : ''; valIn.disabled = !defaults[t]; out.textContent = hint[t]; bar.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }); });
+tools.forEach(t => { const b = btn(t === 'SELECT' ? 'Select' : t === 'ERASE' ? 'Erase' : t === 'IC' ? 'Chip' : t, () => { tool = t; first = null; sel = null; selEnd = null; redraw(); valIn.value = defaults[t] ? String(defaults[t]) : ''; valIn.disabled = !defaults[t]; out.textContent = hint[t]; bar.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }); });
 bar.append(valIn); valIn.value = String(defaults.R);
+const icSel = document.createElement('select'); // chips from components.json that have a simulation model
+icSel.title = 'Part to place with the Chip tool'; icSel.style.cssText = 'padding:7px;border-radius:8px;border:1px solid var(--line);background:#10141a;color:inherit;font:inherit;max-width:190px';
+const groups: Record<string, HTMLOptGroupElement> = {}; // one group per category (logic, transistor, analog)
+Object.entries(COMPONENTS).filter(([id]) => isSimulable(id)).forEach(([id, d]) => {
+  const grp = groups[d.category] ??= Object.assign(document.createElement('optgroup'), { label: d.category[0].toUpperCase() + d.category.slice(1) });
+  grp.append(new Option(`${id} ${d.subtype}`, id));
+});
+Object.values(groups).forEach(grp => icSel.append(grp));
+bar.append(icSel);
+const ioNote = (ref: string) => ({ gates: ' (supply)', opamp: ' (supply)', timer: ' (supply)', bjt: ' (C→E)', mosfet: ' (D→S)', planned: '' })[COMPONENTS[ref].model.type]; // what V and I mean for a chip row in Run DC
+const label = (p: Part) => (p.kind === 'IC' ? p.ref : p.kind + (p.value ? ' ' + p.value : ''));
 const eraserBtn = bar.querySelectorAll('button')[tools.indexOf('ERASE')];
 eraserBtn.title = 'Eraser'; eraserBtn.setAttribute('aria-label', 'Eraser');
 eraserBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>';
@@ -70,7 +82,7 @@ btn('+', () => applyZoom(zi + 1)).title = 'Zoom in';
 function erasePart(p: Part) { // the eraser removes the WHOLE part, like the eraser in Paint removes what it touches
   const i = parts.indexOf(p); if (i < 0) return;
   parts.splice(i, 1); if (p === sel) { sel = null; selEnd = null; }
-  redraw(); out.textContent = `Erased the ${p.kind}.`;
+  redraw(); out.textContent = `Erased the ${p.kind === 'IC' ? p.ref : p.kind}.`;
 }
 function select(p: Part) {
   sel = p; selEnd = null;
@@ -110,6 +122,7 @@ function click(id: string) {
     }
     return;
   }
+  if (tool === 'IC') { placeIC(id); return; }
   if (!first) { first = id; redraw(); out.textContent = `Start: ${describe(id)}. Now tap the second hole (Undo cancels).`; return; }
   if (first !== id) {
     let value = defaults[tool];
@@ -119,11 +132,39 @@ function click(id: string) {
   }
   first = null; redraw();
 }
+function placeIC(id: string) { // click = anchor hole; placeHoles decides which holes the part occupies
+  const ref = icSel.value, holes = placeHoles(ref, id), d = COMPONENTS[ref];
+  if (!holes || !holes.every(h => pos.has(h))) { out.textContent = '⚠ Click a main-board hole with room for the whole part to its right.'; return; }
+  if (parts.some(p => p.kind === 'IC' && p.pins.some(h => holes.includes(h)))) { out.textContent = '⚠ That would overlap another part.'; return; }
+  parts.push({ kind: 'IC', ref, pins: holes, value: 0 });
+  const [, c, r] = id.split(':');
+  redraw(); out.textContent = d.package.startsWith('DIP') ? `Placed ${ref}: pin 1 at column ${+c + 1}, row 6. Wire VCC and GND to the rails, then Run DC.` : `Placed ${ref} in row ${+r + 1}, columns ${+c + 1}–${+c + d.pins.length}: ${d.pins.map(q => q.name).join(' ')} left to right.`;
+}
+const eraseable = (el: SVGElement, p: Part) => { if (tool !== 'ERASE') return; el.setAttribute('pointer-events', 'all'); el.style.cursor = 'pointer'; el.addEventListener('pointerdown', ev => { ev.preventDefault(); erasePart(p); }); el.addEventListener('click', () => erasePart(p)); };
+function drawTO92(p: Extract<Part, { kind: 'IC' }>) { // flat face over the three holes, pin names on the holes
+  const xy = p.pins.map(h => pos.get(h)!), x0 = xy[0][0] - 10, x1 = xy[xy.length - 1][0] + 10, y = xy[0][1];
+  const body = add('rect', { x: x0, y: y - 11, width: x1 - x0, height: 22, rx: 9, fill: '#1b1b1b', stroke: p === sel ? '#2f81f7' : '#000', 'stroke-width': 2, 'pointer-events': 'none' }, layer);
+  eraseable(body, p);
+  xy.forEach(([x], i) => { add('text', { x, y: y + 4, 'font-size': 11, 'text-anchor': 'middle', fill: '#eee', 'font-family': 'Arial', 'pointer-events': 'none' }, layer).textContent = COMPONENTS[p.ref].pins[i].name; });
+  add('text', { x: (x0 + x1) / 2, y: y - 14, 'font-size': 8, 'text-anchor': 'middle', fill: '#aaa', 'pointer-events': 'none' }, layer).textContent = p.ref;
+}
+function drawIC(p: Extract<Part, { kind: 'IC' }>) {
+  if (!COMPONENTS[p.ref].package.startsWith('DIP')) return drawTO92(p);
+  const xy = p.pins.map(h => pos.get(h)!), n = xy.length, xs = xy.map(q => q[0]), x0 = Math.min(...xs) - 9, x1 = Math.max(...xs) + 9;
+  const yTop = xy[n - 1][1] + 9, yBot = xy[0][1] - 9; // between row 5 (pins n/2+1..n) and row 6 (pins 1..n/2)
+  const body = add('rect', { x: x0, y: yTop, width: x1 - x0, height: yBot - yTop, rx: 3, fill: '#222', stroke: p === sel ? '#2f81f7' : '#000', 'stroke-width': 2, 'pointer-events': 'none' }, layer);
+  eraseable(body, p);
+  add('path', { d: `M${x0} ${(yTop + yBot) / 2 - 6} a6 6 0 0 1 0 12`, fill: '#555' }, layer); // notch marks the pin-1 end
+  xy.forEach(([x, y]) => add('circle', { cx: x, cy: y, r: 4, fill: '#b8b8b8' }, layer));
+  add('text', { x: (x0 + x1) / 2, y: (yTop + yBot) / 2 + 4, 'font-size': 12, 'text-anchor': 'middle', fill: '#eee', 'font-family': 'Arial' }, layer).textContent = p.ref;
+  add('text', { x: xy[0][0], y: yBot - 3, 'font-size': 8, 'text-anchor': 'middle', fill: '#aaa' }, layer).textContent = '1';
+}
 const colors: Record<string, string> = { R: '#c9a227', L: '#9b5de5', LED: '#e5383b', D: '#555', C: '#2f81f7', V: '#2a9d4b', WIRE: '#111' };
 function redraw(glow = new Map<Part, number>()) {
   save();
   layer.replaceChildren();
   parts.forEach(p => {
+    if (p.kind === 'IC') { drawIC(p); return; }
     const [x1, y1] = pos.get(p.pins[0])!, [x2, y2] = pos.get(p.pins[1])!;
     if (tool === 'ERASE') { // fat invisible hit area so thin wires are easy to catch; click or drag over a part erases it
       const hit = add('line', { x1, y1, x2, y2, stroke: 'transparent', 'stroke-width': 16, 'stroke-linecap': 'round', 'pointer-events': 'stroke', style: 'cursor:pointer' }, layer);
@@ -154,7 +195,7 @@ function run() {
   redraw(glow);
   const eng = (x: number) => (Math.abs(x) >= 1 ? x.toFixed(3) + ' ' : (x * 1e3).toFixed(3) + ' m');
   out.textContent = [...nl.warnings.map(w => '⚠ ' + w), r.ok || !nl.els.length ? '' : '⚠ Did not converge / singular circuit.',
-    ...nl.parts.map((p, k) => `${p.kind}${p.value ? ' ' + p.value : ''}: ${eng(r.i[k] ?? 0)}A, ${eng(r.v[nl.els[k].a] - r.v[nl.els[k].b])}V`)].filter(Boolean).join('\n');
+    ...nl.parts.map((p, k) => `${label(p)}${p.kind === 'IC' ? ioNote(p.ref) : ''}: ${eng(r.i[k] ?? 0)}A, ${eng(r.v[nl.els[k].a] - r.v[nl.els[k].b])}V`)].filter(Boolean).join('\n');
 }
 
 // Persistence: the circuit is kept in this browser (localStorage) so code updates / page reloads don't wipe it.
@@ -165,6 +206,10 @@ function load() {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
     if (!Array.isArray(raw)) return;
     raw.forEach(p => { // keep only parts whose holes still exist on the current board layout
+      if (p && p.kind === 'IC') { // chips: known model + one hole per datasheet pin
+        if (typeof p.ref === 'string' && isSimulable(p.ref) && Array.isArray(p.pins) && p.pins.length === COMPONENTS[p.ref].pins.length && p.pins.every((h: unknown) => typeof h === 'string' && pos.has(h))) parts.push({ kind: 'IC', ref: p.ref, pins: [...p.pins], value: 0 });
+        return;
+      }
       const ok = p && Array.isArray(p.pins) && p.pins.length === 2 && p.pins.every((h: unknown) => typeof h === 'string' && pos.has(h)) && p.pins[0] !== p.pins[1]
         && ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE'].includes(p.kind) && typeof p.value === 'number';
       if (ok) parts.push({ kind: p.kind, pins: [p.pins[0], p.pins[1]], value: p.value } as Part);
@@ -173,5 +218,5 @@ function load() {
 }
 const short = (id: string) => { const [k, a, b] = id.split(':'); return k === 'm' ? `c${+a + 1}r${+b + 1}` : `${+a < 2 ? 'top' : 'bot'}${+a % 2 ? '−' : '+'}${+b + 1}`; };
 const gRoot = document.getElementById('graph');
-if (gRoot) initGraph(gRoot, { parts: () => parts, label: p => `${p.kind}${p.value ? ' ' + p.value : ''} (${short(p.pins[0])} → ${short(p.pins[1])})` });
+if (gRoot) initGraph(gRoot, { parts: () => parts, label: p => `${label(p)} (${short(p.pins[0])} → ${short(p.pins[p.pins.length - 1])})` });
 load(); redraw();

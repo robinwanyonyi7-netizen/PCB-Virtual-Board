@@ -84,6 +84,7 @@ export function initGraph(root: HTMLElement, host: Host) {
     } else {
       const f0 = parseSI(fmin.value), f1 = parseSI(fmax.value);
       if (!(f0 > 0 && f1 > f0)) return fail('Enter a valid frequency range (e.g. 10 to 100k).');
+      if (els.some(e => e.t === 'G' || e.t === 'T')) return fail('Logic ICs and the 555 are digital and are not part of the frequency sweep.');
       const N = 121, fs = Array.from({ length: N }, (_, k) => f0 * (f1 / f0) ** (k / (N - 1)));
       const op = solve(els, nl.nodes, undefined, 0, { t: 0, pre: true }).v, gain: number[] = [], ph: number[] = [];
       for (const f of fs) {

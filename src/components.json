@@ -1,0 +1,2073 @@
+{
+ "7400": {
+  "name": "74HC00",
+  "category": "logic",
+  "subtype": "Quad 2-input NAND",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1B",
+    "role": "in"
+   },
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2B",
+    "role": "in"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "3Y",
+    "role": "out"
+   },
+   {
+    "name": "3A",
+    "role": "in"
+   },
+   {
+    "name": "3B",
+    "role": "in"
+   },
+   {
+    "name": "4Y",
+    "role": "out"
+   },
+   {
+    "name": "4A",
+    "role": "in"
+   },
+   {
+    "name": "4B",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "nand",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      1,
+      2
+     ],
+     "out": 3
+    },
+    {
+     "in": [
+      4,
+      5
+     ],
+     "out": 6
+    },
+    {
+     "in": [
+      9,
+      10
+     ],
+     "out": 8
+    },
+    {
+     "in": [
+      12,
+      13
+     ],
+     "out": 11
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V."
+  }
+ },
+ "7402": {
+  "name": "74HC02",
+  "category": "logic",
+  "subtype": "Quad 2-input NOR",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1B",
+    "role": "in"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2B",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "3A",
+    "role": "in"
+   },
+   {
+    "name": "3B",
+    "role": "in"
+   },
+   {
+    "name": "3Y",
+    "role": "out"
+   },
+   {
+    "name": "4A",
+    "role": "in"
+   },
+   {
+    "name": "4B",
+    "role": "in"
+   },
+   {
+    "name": "4Y",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "nor",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      2,
+      3
+     ],
+     "out": 1
+    },
+    {
+     "in": [
+      5,
+      6
+     ],
+     "out": 4
+    },
+    {
+     "in": [
+      8,
+      9
+     ],
+     "out": 10
+    },
+    {
+     "in": [
+      11,
+      12
+     ],
+     "out": 13
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V."
+  }
+ },
+ "7404": {
+  "name": "74HC04",
+  "category": "logic",
+  "subtype": "Hex inverter",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "3A",
+    "role": "in"
+   },
+   {
+    "name": "3Y",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "4Y",
+    "role": "out"
+   },
+   {
+    "name": "4A",
+    "role": "in"
+   },
+   {
+    "name": "5Y",
+    "role": "out"
+   },
+   {
+    "name": "5A",
+    "role": "in"
+   },
+   {
+    "name": "6Y",
+    "role": "out"
+   },
+   {
+    "name": "6A",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "not",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      1
+     ],
+     "out": 2
+    },
+    {
+     "in": [
+      3
+     ],
+     "out": 4
+    },
+    {
+     "in": [
+      5
+     ],
+     "out": 6
+    },
+    {
+     "in": [
+      9
+     ],
+     "out": 8
+    },
+    {
+     "in": [
+      11
+     ],
+     "out": 10
+    },
+    {
+     "in": [
+      13
+     ],
+     "out": 12
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V."
+  }
+ },
+ "7408": {
+  "name": "74HC08",
+  "category": "logic",
+  "subtype": "Quad 2-input AND",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1B",
+    "role": "in"
+   },
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2B",
+    "role": "in"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "3Y",
+    "role": "out"
+   },
+   {
+    "name": "3A",
+    "role": "in"
+   },
+   {
+    "name": "3B",
+    "role": "in"
+   },
+   {
+    "name": "4Y",
+    "role": "out"
+   },
+   {
+    "name": "4A",
+    "role": "in"
+   },
+   {
+    "name": "4B",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "and",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      1,
+      2
+     ],
+     "out": 3
+    },
+    {
+     "in": [
+      4,
+      5
+     ],
+     "out": 6
+    },
+    {
+     "in": [
+      9,
+      10
+     ],
+     "out": 8
+    },
+    {
+     "in": [
+      12,
+      13
+     ],
+     "out": 11
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V."
+  }
+ },
+ "7432": {
+  "name": "74HC32",
+  "category": "logic",
+  "subtype": "Quad 2-input OR",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1B",
+    "role": "in"
+   },
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2B",
+    "role": "in"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "3Y",
+    "role": "out"
+   },
+   {
+    "name": "3A",
+    "role": "in"
+   },
+   {
+    "name": "3B",
+    "role": "in"
+   },
+   {
+    "name": "4Y",
+    "role": "out"
+   },
+   {
+    "name": "4A",
+    "role": "in"
+   },
+   {
+    "name": "4B",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "or",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      1,
+      2
+     ],
+     "out": 3
+    },
+    {
+     "in": [
+      4,
+      5
+     ],
+     "out": 6
+    },
+    {
+     "in": [
+      9,
+      10
+     ],
+     "out": 8
+    },
+    {
+     "in": [
+      12,
+      13
+     ],
+     "out": 11
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V."
+  }
+ },
+ "7486": {
+  "name": "74HC86",
+  "category": "logic",
+  "subtype": "Quad 2-input XOR",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1B",
+    "role": "in"
+   },
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2B",
+    "role": "in"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "3Y",
+    "role": "out"
+   },
+   {
+    "name": "3A",
+    "role": "in"
+   },
+   {
+    "name": "3B",
+    "role": "in"
+   },
+   {
+    "name": "4Y",
+    "role": "out"
+   },
+   {
+    "name": "4A",
+    "role": "in"
+   },
+   {
+    "name": "4B",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "xor",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      1,
+      2
+     ],
+     "out": 3
+    },
+    {
+     "in": [
+      4,
+      5
+     ],
+     "out": 6
+    },
+    {
+     "in": [
+      9,
+      10
+     ],
+     "out": 8
+    },
+    {
+     "in": [
+      12,
+      13
+     ],
+     "out": 11
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V."
+  }
+ },
+ "74HC283": {
+  "name": "74HC283",
+  "category": "logic",
+  "subtype": "4-bit binary full adder with fast carry",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "S2",
+    "role": "out"
+   },
+   {
+    "name": "B2",
+    "role": "in"
+   },
+   {
+    "name": "A2",
+    "role": "in"
+   },
+   {
+    "name": "S1",
+    "role": "out"
+   },
+   {
+    "name": "A1",
+    "role": "in"
+   },
+   {
+    "name": "B1",
+    "role": "in"
+   },
+   {
+    "name": "C0",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "C4",
+    "role": "out"
+   },
+   {
+    "name": "S4",
+    "role": "out"
+   },
+   {
+    "name": "B4",
+    "role": "in"
+   },
+   {
+    "name": "A4",
+    "role": "in"
+   },
+   {
+    "name": "S3",
+    "role": "out"
+   },
+   {
+    "name": "A3",
+    "role": "in"
+   },
+   {
+    "name": "B3",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "add",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      5,
+      3,
+      14,
+      12,
+      6,
+      2,
+      15,
+      11,
+      7
+     ],
+     "out": 4,
+     "bit": 0
+    },
+    {
+     "in": [
+      5,
+      3,
+      14,
+      12,
+      6,
+      2,
+      15,
+      11,
+      7
+     ],
+     "out": 1,
+     "bit": 1
+    },
+    {
+     "in": [
+      5,
+      3,
+      14,
+      12,
+      6,
+      2,
+      15,
+      11,
+      7
+     ],
+     "out": 13,
+     "bit": 2
+    },
+    {
+     "in": [
+      5,
+      3,
+      14,
+      12,
+      6,
+      2,
+      15,
+      11,
+      7
+     ],
+     "out": 10,
+     "bit": 3
+    },
+    {
+     "in": [
+      5,
+      3,
+      14,
+      12,
+      6,
+      2,
+      15,
+      11,
+      7
+     ],
+     "out": 9,
+     "bit": 4
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V. No propagation delay."
+  }
+ },
+ "2N2222": {
+  "name": "2N2222 (PN2222A, TO-92)",
+  "category": "transistor",
+  "subtype": "NPN BJT",
+  "package": "TO-92",
+  "pins": [
+   {
+    "name": "E",
+    "role": "terminal"
+   },
+   {
+    "name": "B",
+    "role": "terminal"
+   },
+   {
+    "name": "C",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vceo_V": 40,
+   "Ic_max_mA": 600,
+   "hFE": "100-300"
+  },
+  "model": {
+   "type": "bjt",
+   "polarity": "npn",
+   "is": 1e-14,
+   "bf": 200,
+   "br": 3,
+   "c": 3,
+   "b": 2,
+   "e": 1,
+   "note": "Ebers-Moll transport model (no Early effect, no capacitances). Is, bf, br are generic values, not fitted to this exact part. Pinout E-B-C is the PN2222 convention; some makers use C-B-E, check the datasheet."
+  }
+ },
+ "2N7000": {
+  "name": "2N7000",
+  "category": "transistor",
+  "subtype": "N-channel MOSFET",
+  "package": "TO-92",
+  "pins": [
+   {
+    "name": "S",
+    "role": "terminal"
+   },
+   {
+    "name": "G",
+    "role": "terminal"
+   },
+   {
+    "name": "D",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vds_max_V": 60,
+   "Id_max_mA": 200,
+   "Vgs_th_V": "0.8 to 3"
+  },
+  "model": {
+   "type": "mosfet",
+   "polarity": "nmos",
+   "kp": 0.05,
+   "vth": 2.1,
+   "lambda": 0,
+   "d": 3,
+   "g": 2,
+   "s": 1,
+   "note": "Level-1 square-law MOSFET with typical 2N7000/BS170-class values (Vth about 2.1 V, about 2.5 ohm Rds(on) at Vgs = 10 V). No capacitances, no body diode, no channel-length modulation."
+  }
+ },
+ "2N3904": {
+  "name": "2N3904",
+  "category": "transistor",
+  "subtype": "NPN BJT",
+  "package": "TO-92",
+  "pins": [
+   {
+    "name": "E",
+    "role": "terminal"
+   },
+   {
+    "name": "B",
+    "role": "terminal"
+   },
+   {
+    "name": "C",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vceo_V": 40,
+   "Ic_max_mA": 200,
+   "hFE": "100-300"
+  },
+  "model": {
+   "type": "bjt",
+   "polarity": "npn",
+   "is": 1e-14,
+   "bf": 200,
+   "br": 3,
+   "c": 3,
+   "b": 2,
+   "e": 1,
+   "note": "Ebers-Moll transport model (no Early effect, no capacitances). Is, bf, br are generic values, not fitted to this exact part."
+  }
+ },
+ "BC547": {
+  "name": "BC547",
+  "category": "transistor",
+  "subtype": "NPN BJT",
+  "package": "TO-92",
+  "pins": [
+   {
+    "name": "C",
+    "role": "terminal"
+   },
+   {
+    "name": "B",
+    "role": "terminal"
+   },
+   {
+    "name": "E",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vceo_V": 45,
+   "Ic_max_mA": 100,
+   "hFE": "110-800"
+  },
+  "model": {
+   "type": "bjt",
+   "polarity": "npn",
+   "is": 1e-14,
+   "bf": 200,
+   "br": 3,
+   "c": 1,
+   "b": 2,
+   "e": 3,
+   "note": "Ebers-Moll transport model (no Early effect, no capacitances). Is, bf, br are generic values, not fitted to this exact part."
+  }
+ },
+ "BC557": {
+  "name": "BC557",
+  "category": "transistor",
+  "subtype": "PNP BJT",
+  "package": "TO-92",
+  "pins": [
+   {
+    "name": "C",
+    "role": "terminal"
+   },
+   {
+    "name": "B",
+    "role": "terminal"
+   },
+   {
+    "name": "E",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vceo_V": -45,
+   "Ic_max_mA": -100,
+   "hFE": "125-800"
+  },
+  "model": {
+   "type": "bjt",
+   "polarity": "pnp",
+   "is": 1e-14,
+   "bf": 200,
+   "br": 3,
+   "c": 1,
+   "b": 2,
+   "e": 3,
+   "note": "Ebers-Moll transport model (no Early effect, no capacitances). Is, bf, br are generic values, not fitted to this exact part."
+  }
+ },
+ "7410": {
+  "name": "74HC10",
+  "category": "logic",
+  "subtype": "Triple 3-input NAND",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1B",
+    "role": "in"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2B",
+    "role": "in"
+   },
+   {
+    "name": "2C",
+    "role": "in"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "3Y",
+    "role": "out"
+   },
+   {
+    "name": "3A",
+    "role": "in"
+   },
+   {
+    "name": "3B",
+    "role": "in"
+   },
+   {
+    "name": "3C",
+    "role": "in"
+   },
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "1C",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "nand",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      1,
+      2,
+      13
+     ],
+     "out": 12
+    },
+    {
+     "in": [
+      3,
+      4,
+      5
+     ],
+     "out": 6
+    },
+    {
+     "in": [
+      9,
+      10,
+      11
+     ],
+     "out": 8
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V. No propagation delay."
+  }
+ },
+ "7420": {
+  "name": "74HC20",
+  "category": "logic",
+  "subtype": "Dual 4-input NAND",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1B",
+    "role": "in"
+   },
+   {
+    "name": "NC",
+    "role": "nc"
+   },
+   {
+    "name": "1C",
+    "role": "in"
+   },
+   {
+    "name": "1D",
+    "role": "in"
+   },
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2B",
+    "role": "in"
+   },
+   {
+    "name": "NC",
+    "role": "nc"
+   },
+   {
+    "name": "2C",
+    "role": "in"
+   },
+   {
+    "name": "2D",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "nand",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      1,
+      2,
+      4,
+      5
+     ],
+     "out": 6
+    },
+    {
+     "in": [
+      9,
+      10,
+      12,
+      13
+     ],
+     "out": 8
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V. No propagation delay."
+  }
+ },
+ "74HC138": {
+  "name": "74HC138",
+  "category": "logic",
+  "subtype": "3-to-8 line decoder (active-low outputs)",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "A",
+    "role": "in"
+   },
+   {
+    "name": "B",
+    "role": "in"
+   },
+   {
+    "name": "C",
+    "role": "in"
+   },
+   {
+    "name": "~G2A",
+    "role": "in"
+   },
+   {
+    "name": "~G2B",
+    "role": "in"
+   },
+   {
+    "name": "G1",
+    "role": "in"
+   },
+   {
+    "name": "~Y7",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "~Y6",
+    "role": "out"
+   },
+   {
+    "name": "~Y5",
+    "role": "out"
+   },
+   {
+    "name": "~Y4",
+    "role": "out"
+   },
+   {
+    "name": "~Y3",
+    "role": "out"
+   },
+   {
+    "name": "~Y2",
+    "role": "out"
+   },
+   {
+    "name": "~Y1",
+    "role": "out"
+   },
+   {
+    "name": "~Y0",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "dec",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      1,
+      2,
+      3,
+      6,
+      4,
+      5
+     ],
+     "out": 15,
+     "sel": 3,
+     "bit": 0,
+     "inv": true,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      1,
+      2,
+      3,
+      6,
+      4,
+      5
+     ],
+     "out": 14,
+     "sel": 3,
+     "bit": 1,
+     "inv": true,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      1,
+      2,
+      3,
+      6,
+      4,
+      5
+     ],
+     "out": 13,
+     "sel": 3,
+     "bit": 2,
+     "inv": true,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      1,
+      2,
+      3,
+      6,
+      4,
+      5
+     ],
+     "out": 12,
+     "sel": 3,
+     "bit": 3,
+     "inv": true,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      1,
+      2,
+      3,
+      6,
+      4,
+      5
+     ],
+     "out": 11,
+     "sel": 3,
+     "bit": 4,
+     "inv": true,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      1,
+      2,
+      3,
+      6,
+      4,
+      5
+     ],
+     "out": 10,
+     "sel": 3,
+     "bit": 5,
+     "inv": true,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      1,
+      2,
+      3,
+      6,
+      4,
+      5
+     ],
+     "out": 9,
+     "sel": 3,
+     "bit": 6,
+     "inv": true,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      1,
+      2,
+      3,
+      6,
+      4,
+      5
+     ],
+     "out": 7,
+     "sel": 3,
+     "bit": 7,
+     "inv": true,
+     "inv_in": [
+      4,
+      5
+     ]
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V. No propagation delay."
+  }
+ },
+ "74HC151": {
+  "name": "74HC151",
+  "category": "logic",
+  "subtype": "8-to-1 multiplexer (Y and W = not Y)",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "D3",
+    "role": "in"
+   },
+   {
+    "name": "D2",
+    "role": "in"
+   },
+   {
+    "name": "D1",
+    "role": "in"
+   },
+   {
+    "name": "D0",
+    "role": "in"
+   },
+   {
+    "name": "Y",
+    "role": "out"
+   },
+   {
+    "name": "W",
+    "role": "out"
+   },
+   {
+    "name": "~E",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "S2",
+    "role": "in"
+   },
+   {
+    "name": "S1",
+    "role": "in"
+   },
+   {
+    "name": "S0",
+    "role": "in"
+   },
+   {
+    "name": "D7",
+    "role": "in"
+   },
+   {
+    "name": "D6",
+    "role": "in"
+   },
+   {
+    "name": "D5",
+    "role": "in"
+   },
+   {
+    "name": "D4",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "mux",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      4,
+      3,
+      2,
+      1,
+      15,
+      14,
+      13,
+      12,
+      11,
+      10,
+      9,
+      7
+     ],
+     "out": 5,
+     "sel": 3,
+     "inv_in": [
+      11
+     ]
+    },
+    {
+     "in": [
+      4,
+      3,
+      2,
+      1,
+      15,
+      14,
+      13,
+      12,
+      11,
+      10,
+      9,
+      7
+     ],
+     "out": 6,
+     "sel": 3,
+     "inv_in": [
+      11
+     ],
+     "inv": true
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V. No propagation delay."
+  }
+ },
+ "74HC157": {
+  "name": "74HC157",
+  "category": "logic",
+  "subtype": "Quad 2-to-1 multiplexer",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "S",
+    "role": "in"
+   },
+   {
+    "name": "1A",
+    "role": "in"
+   },
+   {
+    "name": "1B",
+    "role": "in"
+   },
+   {
+    "name": "1Y",
+    "role": "out"
+   },
+   {
+    "name": "2A",
+    "role": "in"
+   },
+   {
+    "name": "2B",
+    "role": "in"
+   },
+   {
+    "name": "2Y",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "3Y",
+    "role": "out"
+   },
+   {
+    "name": "3B",
+    "role": "in"
+   },
+   {
+    "name": "3A",
+    "role": "in"
+   },
+   {
+    "name": "4Y",
+    "role": "out"
+   },
+   {
+    "name": "4B",
+    "role": "in"
+   },
+   {
+    "name": "4A",
+    "role": "in"
+   },
+   {
+    "name": "~G",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "mux",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      2,
+      3,
+      1,
+      15
+     ],
+     "out": 4,
+     "sel": 1,
+     "inv_in": [
+      3
+     ]
+    },
+    {
+     "in": [
+      5,
+      6,
+      1,
+      15
+     ],
+     "out": 7,
+     "sel": 1,
+     "inv_in": [
+      3
+     ]
+    },
+    {
+     "in": [
+      11,
+      10,
+      1,
+      15
+     ],
+     "out": 9,
+     "sel": 1,
+     "inv_in": [
+      3
+     ]
+    },
+    {
+     "in": [
+      14,
+      13,
+      1,
+      15
+     ],
+     "out": 12,
+     "sel": 1,
+     "inv_in": [
+      3
+     ]
+    }
+   ],
+   "note": "Simplified digital model: each output is a 50 ohm switch to Vcc or GND, inputs switch at Vcc/2, chip is unpowered (outputs float) below 2 V. No propagation delay."
+  }
+ },
+ "BS170": {
+  "name": "BS170",
+  "category": "transistor",
+  "subtype": "N-channel MOSFET",
+  "package": "TO-92",
+  "pins": [
+   {
+    "name": "D",
+    "role": "terminal"
+   },
+   {
+    "name": "G",
+    "role": "terminal"
+   },
+   {
+    "name": "S",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vds_max_V": 60,
+   "Id_max_mA": 500,
+   "Vgs_th_V": "0.8 to 3"
+  },
+  "model": {
+   "type": "mosfet",
+   "polarity": "nmos",
+   "kp": 0.05,
+   "vth": 2.1,
+   "lambda": 0,
+   "d": 1,
+   "g": 2,
+   "s": 3,
+   "note": "Level-1 square-law MOSFET with typical 2N7000/BS170-class values (Vth about 2.1 V, about 2.5 ohm Rds(on) at Vgs = 10 V). No capacitances, no body diode, no channel-length modulation."
+  }
+ },
+ "LM358": {
+  "name": "LM358",
+  "category": "analog",
+  "subtype": "Dual op-amp (single-supply)",
+  "package": "DIP-8",
+  "pins": [
+   {
+    "name": "OUT1",
+    "role": "out"
+   },
+   {
+    "name": "IN1-",
+    "role": "in"
+   },
+   {
+    "name": "IN1+",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "IN2+",
+    "role": "in"
+   },
+   {
+    "name": "IN2-",
+    "role": "in"
+   },
+   {
+    "name": "OUT2",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "supply": "single or dual"
+  },
+  "model": {
+   "type": "opamp",
+   "vp": 8,
+   "vn": 4,
+   "amps": [
+    {
+     "inp": 3,
+     "inn": 2,
+     "out": 1
+    },
+    {
+     "inp": 5,
+     "inn": 6,
+     "out": 7
+    }
+   ],
+   "gain": 100000.0,
+   "gbw_Hz": 1000000.0,
+   "rout_ohm": 75,
+   "head_hi_V": 1.5,
+   "head_lo_V": 0.05,
+   "iq_mA": 0.7,
+   "vmin_V": 3,
+   "note": "Op-amp macro-model: ideal gain with a single pole (gain-bandwidth), 75 ohm output resistance, output clamps near the rails, no slew limit, no input bias or offset. Runs from the single battery (V- is circuit ground). Transient is instantaneous (the pole only shapes the frequency sweep)."
+  }
+ },
+ "LM324": {
+  "name": "LM324",
+  "category": "analog",
+  "subtype": "Quad op-amp (single-supply)",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "OUT1",
+    "role": "out"
+   },
+   {
+    "name": "IN1-",
+    "role": "in"
+   },
+   {
+    "name": "IN1+",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   },
+   {
+    "name": "IN2+",
+    "role": "in"
+   },
+   {
+    "name": "IN2-",
+    "role": "in"
+   },
+   {
+    "name": "OUT2",
+    "role": "out"
+   },
+   {
+    "name": "OUT3",
+    "role": "out"
+   },
+   {
+    "name": "IN3-",
+    "role": "in"
+   },
+   {
+    "name": "IN3+",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "IN4+",
+    "role": "in"
+   },
+   {
+    "name": "IN4-",
+    "role": "in"
+   },
+   {
+    "name": "OUT4",
+    "role": "out"
+   }
+  ],
+  "params": {
+   "supply": "single or dual"
+  },
+  "model": {
+   "type": "opamp",
+   "vp": 4,
+   "vn": 11,
+   "amps": [
+    {
+     "inp": 3,
+     "inn": 2,
+     "out": 1
+    },
+    {
+     "inp": 5,
+     "inn": 6,
+     "out": 7
+    },
+    {
+     "inp": 10,
+     "inn": 9,
+     "out": 8
+    },
+    {
+     "inp": 12,
+     "inn": 13,
+     "out": 14
+    }
+   ],
+   "gain": 100000.0,
+   "gbw_Hz": 1000000.0,
+   "rout_ohm": 75,
+   "head_hi_V": 1.5,
+   "head_lo_V": 0.05,
+   "iq_mA": 1.4,
+   "vmin_V": 3,
+   "note": "Op-amp macro-model: ideal gain with a single pole (gain-bandwidth), 75 ohm output resistance, output clamps near the rails, no slew limit, no input bias or offset. Runs from the single battery (V- is circuit ground). Transient is instantaneous (the pole only shapes the frequency sweep)."
+  }
+ },
+ "LM741": {
+  "name": "LM741",
+  "category": "analog",
+  "subtype": "General-purpose op-amp",
+  "package": "DIP-8",
+  "pins": [
+   {
+    "name": "OFFSET",
+    "role": "terminal"
+   },
+   {
+    "name": "IN-",
+    "role": "in"
+   },
+   {
+    "name": "IN+",
+    "role": "in"
+   },
+   {
+    "name": "V-",
+    "role": "gnd"
+   },
+   {
+    "name": "OFFSET",
+    "role": "terminal"
+   },
+   {
+    "name": "OUT",
+    "role": "out"
+   },
+   {
+    "name": "V+",
+    "role": "vcc"
+   },
+   {
+    "name": "NC",
+    "role": "nc"
+   }
+  ],
+  "params": {
+   "supply": "single or dual"
+  },
+  "model": {
+   "type": "opamp",
+   "vp": 7,
+   "vn": 4,
+   "amps": [
+    {
+     "inp": 3,
+     "inn": 2,
+     "out": 6
+    }
+   ],
+   "gain": 200000.0,
+   "gbw_Hz": 1000000.0,
+   "rout_ohm": 75,
+   "head_hi_V": 2,
+   "head_lo_V": 2,
+   "iq_mA": 1.7,
+   "vmin_V": 10,
+   "note": "Op-amp macro-model: ideal gain with a single pole (gain-bandwidth), 75 ohm output resistance, output clamps near the rails, no slew limit, no input bias or offset. Runs from the single battery (V- is circuit ground). Transient is instantaneous (the pole only shapes the frequency sweep)."
+  }
+ },
+ "NE555": {
+  "name": "NE555",
+  "category": "analog",
+  "subtype": "Bipolar 555 timer",
+  "package": "DIP-8",
+  "pins": [
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "TRIG",
+    "role": "in"
+   },
+   {
+    "name": "OUT",
+    "role": "out"
+   },
+   {
+    "name": "~RESET",
+    "role": "in"
+   },
+   {
+    "name": "CTRL",
+    "role": "terminal"
+   },
+   {
+    "name": "THR",
+    "role": "in"
+   },
+   {
+    "name": "DIS",
+    "role": "terminal"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "supply_V": "4.5 to 16"
+  },
+  "model": {
+   "type": "timer",
+   "vcc": 8,
+   "gnd": 1,
+   "trig": 2,
+   "out": 3,
+   "reset": 4,
+   "ctrl": 5,
+   "thr": 6,
+   "dis": 7,
+   "vmin_V": 4.5,
+   "drop_V": 1.7,
+   "rout_hi_ohm": 50,
+   "rout_lo_ohm": 10,
+   "rdis_ohm": 10,
+   "iq_mA": 2.7,
+   "note": "555 macro-model: 5k-5k-5k divider, latch with RESET > TRIG > THRESHOLD priority, output stage with a typical high-level drop, discharge switch on while the output is low. No comparator delay or bias currents. Transient and DC only."
+  }
+ },
+ "LMC555": {
+  "name": "LMC555",
+  "category": "analog",
+  "subtype": "CMOS 555 timer",
+  "package": "DIP-8",
+  "pins": [
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "TRIG",
+    "role": "in"
+   },
+   {
+    "name": "OUT",
+    "role": "out"
+   },
+   {
+    "name": "~RESET",
+    "role": "in"
+   },
+   {
+    "name": "CTRL",
+    "role": "terminal"
+   },
+   {
+    "name": "THR",
+    "role": "in"
+   },
+   {
+    "name": "DIS",
+    "role": "terminal"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "supply_V": "1.5 to 15"
+  },
+  "model": {
+   "type": "timer",
+   "vcc": 8,
+   "gnd": 1,
+   "trig": 2,
+   "out": 3,
+   "reset": 4,
+   "ctrl": 5,
+   "thr": 6,
+   "dis": 7,
+   "vmin_V": 2,
+   "drop_V": 0,
+   "rout_hi_ohm": 50,
+   "rout_lo_ohm": 50,
+   "rdis_ohm": 30,
+   "iq_mA": 0.1,
+   "note": "555 macro-model: 5k-5k-5k divider, latch with RESET > TRIG > THRESHOLD priority, output stage with a typical high-level drop, discharge switch on while the output is low. No comparator delay or bias currents. Transient and DC only."
+  }
+ }
+}

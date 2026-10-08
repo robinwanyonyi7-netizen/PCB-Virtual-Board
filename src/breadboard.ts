@@ -1,5 +1,6 @@
 // Board geometry + connectivity. Hole ids: "m:col:row" (row 0-9 = a-j) or "r:rail:idx" (rail 0-3).
 import type { El, Wave } from './solver';
+import { icElement } from './components';
 export const COLS = 30, RAIL_HOLES = 30; // per rail: 15 left half + 15 right half, one hole per column
 export const strip = (h: string) => {
   const [k, a, b] = h.split(':');
@@ -8,7 +9,8 @@ export const strip = (h: string) => {
 };
 export type Part =
   | { kind: 'R' | 'L' | 'C' | 'V' | 'LED' | 'D'; pins: [string, string]; value: number }
-  | { kind: 'WIRE'; pins: [string, string]; value: 0 };
+  | { kind: 'WIRE'; pins: [string, string]; value: 0 }
+  | { kind: 'IC'; ref: string; pins: string[]; value: 0 }; // ref = key in components.json; pins[i] = hole of datasheet pin i+1
 export interface Netlist { els: El[]; parts: Part[]; nodes: number; warnings: string[] }
 
 export function buildNetlist(parts: Part[], wave?: Wave): Netlist { // wave applies to the first battery (for time / frequency graphs)
@@ -24,6 +26,12 @@ export function buildNetlist(parts: Part[], wave?: Wave): Netlist { // wave appl
   const els: El[] = [], used: Part[] = [];
   if (bat) parts.forEach(p => {
     if (p.kind === 'WIRE') return;
+    if (p.kind === 'IC') {
+      const el = icElement(p, nodeOf);
+      if (!el) { warnings.push(`${p.ref} has no simulation model yet (ignored).`); return; }
+      if (el.a === el.b) { warnings.push(`${p.ref}: VCC and GND pins are on the same net.`); return; }
+      els.push(el); used.push(p); return;
+    }
     const a = nodeOf(p.pins[0]), b = nodeOf(p.pins[1]);
     if (a === b) { warnings.push(`${p.kind} is shorted (both pins on one net).`); return; }
     if (p.kind === 'LED') els.push({ t: 'D', a, b, is: 1e-18, n: 2 });
