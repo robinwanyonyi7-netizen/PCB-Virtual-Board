@@ -1,10 +1,11 @@
 // Graph panel: time response (transient) and frequency response (Bode) of the circuit on the board.
 import { solve, transient, acSolve, srcValue, type Wave } from './solver';
 import { buildNetlist, type Part } from './breadboard';
-import { chart, si, type Series } from './plot';
+import { chart, type Series } from './plot';
+import { freqParams, timeParams, seriesTheory, meaning, type Rows } from './analysis';
 
 export interface Host { parts: () => Part[]; label: (p: Part) => string }
-interface Cfg { mode: 'time' | 'freq'; kind: Wave['kind']; freq: string; tstop: string; fmin: string; fmax: string; qty: 'v' | 'i' }
+interface Cfg { mode: 'time' | 'freq'; kind: Wave['kind']; freq: string; tstop: string; fmin: string; fmax: string; qty: 'v' | 'i'; explain?: boolean }
 const KEY = 'vb.graph';
 const DEF: Cfg = { mode: 'time', kind: 'step', freq: '1k', tstop: '', fmin: '10', fmax: '100k', qty: 'v' };
 export const parseSI = (t: string) => { const m = t.trim().match(/^([\d.]+(?:e[+-]?\d+)?)\s*(Meg|[pnuµmkMG]?)/i); if (!m) return NaN; const k: Record<string, number> = { p: 1e-12, n: 1e-9, u: 1e-6, µ: 1e-6, m: 1e-3, k: 1e3, M: 1e6, meg: 1e6, Meg: 1e6, G: 1e9 }; return +m[1] * (k[m[2]] ?? 1); };
@@ -23,14 +24,16 @@ export function initGraph(root: HTMLElement, host: Host) {
       <label class="g-f">From (Hz)<input id="g-fmin" inputmode="decimal"></label>
       <label class="g-f">To (Hz)<input id="g-fmax" inputmode="decimal"></label>
     </div>
-    <div class="gact"><button id="g-plot" class="run">Plot</button><button id="g-csv">CSV</button></div>
-    <div id="g-msg" class="gmsg"></div><div id="g-out"></div></div></details>`;
+    <div class="gact"><button id="g-plot" class="run">Plot</button><button id="g-csv">CSV</button><label class="gexp"><input type="checkbox" id="g-exp"> Explain terms</label></div>
+    <div id="g-msg" class="gmsg"></div><div id="g-out"></div><div id="g-calc"></div></div></details>`;
   const $ = <T extends HTMLElement>(id: string) => root.querySelector('#' + id) as T;
   const kind = $<HTMLSelectElement>('g-kind'), freq = $<HTMLInputElement>('g-freq'), probe = $<HTMLSelectElement>('g-probe'), qty = $<HTMLSelectElement>('g-qty');
-  const tstop = $<HTMLInputElement>('g-tstop'), fmin = $<HTMLInputElement>('g-fmin'), fmax = $<HTMLInputElement>('g-fmax'), msg = $('g-msg'), out = $('g-out');
+  const tstop = $<HTMLInputElement>('g-tstop'), fmin = $<HTMLInputElement>('g-fmin'), fmax = $<HTMLInputElement>('g-fmax'), msg = $('g-msg'), out = $('g-out'), calc = $('g-calc'), exp = $<HTMLInputElement>('g-exp');
+  exp.checked = cfg.explain !== false; calc.classList.toggle('noexp', !exp.checked);
+  exp.addEventListener('change', () => { calc.classList.toggle('noexp', !exp.checked); save(); });
   kind.value = cfg.kind; freq.value = cfg.freq; qty.value = cfg.qty; tstop.value = cfg.tstop; fmin.value = cfg.fmin; fmax.value = cfg.fmax;
   let csv = '';
-  const save = () => { cfg = { ...cfg, kind: kind.value as Wave['kind'], freq: freq.value, qty: qty.value as 'v' | 'i', tstop: tstop.value, fmin: fmin.value, fmax: fmax.value }; try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch { /* ignore */ } };
+  const save = () => { cfg = { ...cfg, kind: kind.value as Wave['kind'], freq: freq.value, qty: qty.value as 'v' | 'i', tstop: tstop.value, fmin: fmin.value, fmax: fmax.value, explain: exp.checked }; try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch { /* ignore */ } };
   const showMode = () => {
     root.querySelectorAll<HTMLButtonElement>('.gtabs button').forEach(b => b.classList.toggle('on', b.dataset.m === cfg.mode));
     root.querySelectorAll<HTMLElement>('.g-t').forEach(e => (e.style.display = cfg.mode === 'time' ? '' : 'none'));
@@ -46,13 +49,17 @@ export function initGraph(root: HTMLElement, host: Host) {
     const want = keep && listed.includes(keep) ? listed.indexOf(keep) : Math.max(0, listed.findIndex(p => p.kind === 'C'));
     if (listed.length) probe.value = String(Math.max(0, want));
   };
-  root.querySelectorAll<HTMLButtonElement>('.gtabs button').forEach(b => b.addEventListener('click', () => { cfg.mode = b.dataset.m as Cfg['mode']; save(); showMode(); out.innerHTML = ''; msg.textContent = ''; }));
+  root.querySelectorAll<HTMLButtonElement>('.gtabs button').forEach(b => b.addEventListener('click', () => { cfg.mode = b.dataset.m as Cfg['mode']; save(); showMode(); out.innerHTML = ''; calc.innerHTML = ''; msg.textContent = ''; }));
   kind.addEventListener('change', () => { save(); showMode(); });
   [probe, root.querySelector('summary')!].forEach(e => ['pointerdown', 'focus', 'click'].forEach(ev => e.addEventListener(ev, refresh)));
   [freq, qty, tstop, fmin, fmax].forEach(e => e.addEventListener('change', save));
   showMode(); refresh();
 
-  const fail = (m: string) => { msg.textContent = '⚠ ' + m; out.innerHTML = ''; csv = ''; };
+  const fail = (m: string) => { msg.textContent = '⚠ ' + m; out.innerHTML = ''; calc.innerHTML = ''; csv = ''; };
+  const show = (rows: Rows, theory: string[] | null) => { // "Calculated from the graph" table + worked textbook check
+    calc.innerHTML = `<div class="gcalc"><h4>Calculated from the graph</h4><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}${meaning(k) ? `<small class="mean">${meaning(k)}</small>` : ''}</dd>`).join('')}</dl></div>`
+      + (theory ? `<div class="gcalc"><h4>Theory check (one series loop)</h4><ul>${theory.map(l => `<li>${l}</li>`).join('')}</ul></div>` : '');
+  };
   function plot() {
     save(); refresh(); msg.textContent = '';
     const wave: Wave = { kind: kind.value as Wave['kind'], freq: parseSI(freq.value) || 1000 };
@@ -71,13 +78,8 @@ export function initGraph(root: HTMLElement, host: Host) {
       if (isV) series.push({ name: 'source (battery)', x: res.t, y: res.t.map(t => srcValue(vsrc, t)), color: '#8b95a3', dash: '5 4' });
       series.push({ name: isV ? 'probe voltage' : 'probe current', x: res.t, y, color: '#2f81f7' });
       out.innerHTML = chart(series, { title: 'Time response', xlabel: 'time (s)', ylabel: isV ? 'volts (V)' : 'current (mA)', xunit: 's' });
-      const y0 = y[0], yf = y[y.length - 1], mx = Math.max(...y), mn = Math.min(...y), u = isV ? 'V' : 'mA';
-      let txt = `Start ${si(y0)}${u} · End ${si(yf)}${u} · Max ${si(mx)}${u} · Min ${si(mn)}${u}`;
-      if (wave.kind === 'step' && Math.abs(yf - y0) > 1e-9) { // first-order time constant: 63.2% point
-        const tgt = y0 + 0.632 * (yf - y0), i = y.findIndex(v => (yf > y0 ? v >= tgt : v <= tgt));
-        if (i > 0) txt += ` · 63.2% of the change at t ≈ ${si(res.t[i - 1] + ((tgt - y[i - 1]) / (y[i] - y[i - 1])) * (res.t[i] - res.t[i - 1]))}s (≈ τ for a first-order circuit)`;
-      }
-      msg.textContent = txt;
+      const dc = solve(els, nl.nodes, undefined, 0, { t: 1e9 }), fin = isV ? dc.v[pr.a] - dc.v[pr.b] : dc.i[pk] * 1e3; // steady state with the step on
+      show(timeParams(res.t, y, wave.kind, vsrc.v, wave.freq as number, isV ? 'V' : 'mA', wave.kind === 'step' ? fin : undefined), seriesTheory(els, nl.nodes));
       csv = 'time_s,' + (isV ? 'source_V,probe_V' : 'probe_mA') + '\n' + res.t.map((t, k) => [t, ...(isV ? [series[0].y[k], y[k]] : [y[k]])].join(',')).join('\n');
     } else {
       const f0 = parseSI(fmin.value), f1 = parseSI(fmax.value);
@@ -91,11 +93,8 @@ export function initGraph(root: HTMLElement, host: Host) {
       }
       out.innerHTML = chart([{ name: 'gain', x: fs, y: gain, color: '#2f81f7' }], { title: 'Gain', xlabel: 'frequency (Hz)', ylabel: 'gain (dB)', logx: true, xunit: 'Hz', h: 250 })
         + '<div style="height:8px"></div>' + chart([{ name: 'phase', x: fs, y: ph, color: '#e5383b' }], { title: 'Phase', xlabel: 'frequency (Hz)', ylabel: 'phase (deg)', logx: true, xunit: 'Hz', h: 230 });
-      const pk0 = gain.indexOf(Math.max(...gain)), tgt = gain[pk0] - 3.0103, cuts: string[] = [];
-      const cross = (a: number, b: number) => { const t = (tgt - gain[a]) / (gain[b] - gain[a]); return fs[a] * (fs[b] / fs[a]) ** t; };
-      for (let k = pk0; k < N - 1; k++) if (gain[k] >= tgt && gain[k + 1] < tgt) { cuts.push(si(cross(k, k + 1)) + 'Hz'); break; }
-      for (let k = pk0; k > 0; k--) if (gain[k] >= tgt && gain[k - 1] < tgt) { cuts.unshift(si(cross(k, k - 1)) + 'Hz'); break; }
-      msg.textContent = `Peak gain ${gain[pk0].toFixed(2)} dB at ${si(fs[pk0])}Hz · −3 dB point${cuts.length > 1 ? 's' : ''}: ${cuts.join(' and ') || 'none in this range'}`;
+      const gAt = (f: number) => { const r = acSolve(els, nl.nodes, srcK, f, op); return r ? 20 * Math.log10(Math.max(Math.hypot(r.re[pr.a] - r.re[pr.b], r.im[pr.a] - r.im[pr.b]), 1e-12)) : undefined; };
+      show(freqParams(fs, gain, ph, gAt(1e-3), gAt(1e9)), seriesTheory(els, nl.nodes));
       csv = 'freq_Hz,gain_dB,phase_deg\n' + fs.map((f, k) => `${f},${gain[k]},${ph[k]}`).join('\n');
     }
   }

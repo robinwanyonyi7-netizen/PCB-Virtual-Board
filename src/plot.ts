@@ -5,7 +5,10 @@ const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;
 export function si(v: number, digits = 3): string {
   if (v === 0) return '0';
   const a = Math.abs(v), U: [number, string][] = [[1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n'], [1e-12, 'p']];
-  for (const [s, u] of U) if (a >= s * 0.9999) return `${+(v / s).toPrecision(digits)}${u}`;
+  for (let i = 0; i < U.length; i++) {
+    const [s, u] = U[i];
+    if (a >= s * 0.9999) { const r = +(v / s).toPrecision(digits); return Math.abs(r) >= 1000 && i > 0 ? `${+(v / U[i - 1][0]).toPrecision(digits)}${U[i - 1][1]}` : `${r}${u}`; } // 1000µ -> 1m
+  }
   return v.toExponential(1);
 }
 function niceTicks(lo: number, hi: number, n = 5): number[] {

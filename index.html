@@ -46,6 +46,15 @@
   #graph label { display:flex; flex-direction:column; gap:3px; color:var(--muted); font-size:12px; }
   #graph select, #graph input { padding:7px 8px; border:1px solid var(--line); border-radius:8px; background:#10141a; color:var(--text); font:inherit; min-width:0; }
   #graph .gact { display:flex; gap:8px; margin:10px 0 6px; } #graph .gact .run { background:var(--ok); border-color:var(--ok); color:#fff; }
+  #graph .gcalc { margin-top:12px; padding:10px 12px; background:#10141a; border:1px solid var(--line); border-radius:10px; }
+  #graph .gcalc h4 { margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600; }
+  #graph dl { display:grid; grid-template-columns:minmax(120px,max-content) 1fr; gap:4px 14px; margin:0; font-size:13px; }
+  #graph dt { color:var(--muted); } #graph dd { margin:0; font-family:ui-monospace,Menlo,Consolas,monospace; word-break:break-word; }
+  #graph .mean { display:block; margin-top:2px; font:12px/1.4 system-ui,sans-serif; color:var(--muted); }
+  #g-calc.noexp .mean { display:none; }
+  #graph .gexp { flex-direction:row; align-items:center; gap:6px; margin-left:auto; } #graph .gexp input { width:auto; min-height:0; }
+  #graph ul { margin:0; padding-left:18px; font:12.5px/1.6 ui-monospace,Menlo,Consolas,monospace; }
+  @media (max-width:520px) { #graph dl { grid-template-columns:1fr; gap:0; } #graph dd { margin-bottom:6px; } }
   #graph .gmsg { margin:6px 0; font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; color:var(--text); }
   @media (pointer:coarse) { #graph select, #graph input { min-height:44px; font-size:16px; } }
   .legend { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 14px; margin:14px 0 0; color:var(--muted); font-size:12px; }
