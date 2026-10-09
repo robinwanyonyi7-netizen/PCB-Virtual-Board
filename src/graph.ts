@@ -1,11 +1,12 @@
 // Graph panel: time response (transient) and frequency response (Bode) of the circuit on the board.
 import { solve, transient, acSolve, srcValue, type Wave } from './solver';
 import { buildNetlist, type Part } from './breadboard';
-import { chart, type Series } from './plot';
+import { chart, logicChart, type Series } from './plot';
+import { COMPONENTS } from './components';
 import { freqParams, timeParams, seriesTheory, meaning, type Rows } from './analysis';
 
 export interface Host { parts: () => Part[]; label: (p: Part) => string }
-interface Cfg { mode: 'time' | 'freq'; kind: Wave['kind']; freq: string; tstop: string; fmin: string; fmax: string; qty: 'v' | 'i'; explain?: boolean }
+interface Cfg { mode: 'time' | 'freq'; kind: Wave['kind']; freq: string; tstop: string; fmin: string; fmax: string; qty: 'v' | 'i' | 'logic'; explain?: boolean }
 const KEY = 'vb.graph';
 const DEF: Cfg = { mode: 'time', kind: 'step', freq: '1k', tstop: '', fmin: '10', fmax: '100k', qty: 'v' };
 export const parseSI = (t: string) => { const m = t.trim().match(/^([\d.]+(?:e[+-]?\d+)?)\s*(Meg|[pnuµmkMG]?)/i); if (!m) return NaN; const k: Record<string, number> = { p: 1e-12, n: 1e-9, u: 1e-6, µ: 1e-6, m: 1e-3, k: 1e3, M: 1e6, meg: 1e6, Meg: 1e6, G: 1e9 }; return +m[1] * (k[m[2]] ?? 1); };
@@ -19,7 +20,7 @@ export function initGraph(root: HTMLElement, host: Host) {
       <label>Source (battery)<select id="g-kind"><option value="step">Step (0 → battery value)</option><option value="sine">Sine (±battery value)</option><option value="square">Square (±battery value)</option><option value="dc">DC (constant)</option></select></label>
       <label class="g-f1">Frequency (Hz)<input id="g-freq" inputmode="decimal"></label>
       <label>Probe (voltage across)<select id="g-probe"></select></label>
-      <label class="g-t">Measure<select id="g-qty"><option value="v">Voltage (V)</option><option value="i">Current (mA)</option></select></label>
+      <label class="g-t">Measure<select id="g-qty"><option value="v">Voltage (V)</option><option value="i">Current (mA)</option><option value="logic">Logic view (chip pins)</option></select></label>
       <label class="g-t">Stop time (s)<input id="g-tstop" inputmode="decimal" placeholder="auto"></label>
       <label class="g-f">From (Hz)<input id="g-fmin" inputmode="decimal"></label>
       <label class="g-f">To (Hz)<input id="g-fmax" inputmode="decimal"></label>
@@ -33,7 +34,7 @@ export function initGraph(root: HTMLElement, host: Host) {
   exp.addEventListener('change', () => { calc.classList.toggle('noexp', !exp.checked); save(); });
   kind.value = cfg.kind; freq.value = cfg.freq; qty.value = cfg.qty; tstop.value = cfg.tstop; fmin.value = cfg.fmin; fmax.value = cfg.fmax;
   let csv = '';
-  const save = () => { cfg = { ...cfg, kind: kind.value as Wave['kind'], freq: freq.value, qty: qty.value as 'v' | 'i', tstop: tstop.value, fmin: fmin.value, fmax: fmax.value, explain: exp.checked }; try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch { /* ignore */ } };
+  const save = () => { cfg = { ...cfg, kind: kind.value as Wave['kind'], freq: freq.value, qty: qty.value as 'v' | 'i' | 'logic', tstop: tstop.value, fmin: fmin.value, fmax: fmax.value, explain: exp.checked }; try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch { /* ignore */ } };
   const showMode = () => {
     root.querySelectorAll<HTMLButtonElement>('.gtabs button').forEach(b => b.classList.toggle('on', b.dataset.m === cfg.mode));
     root.querySelectorAll<HTMLElement>('.g-t').forEach(e => (e.style.display = cfg.mode === 'time' ? '' : 'none'));
@@ -62,18 +63,32 @@ export function initGraph(root: HTMLElement, host: Host) {
   };
   function plot() {
     save(); refresh(); msg.textContent = '';
-    const wave: Wave = { kind: kind.value as Wave['kind'], freq: parseSI(freq.value) || 1000 };
+    const digital = qty.value === 'logic' || host.parts().some(p => p.kind === 'CLK'); // digital circuits are powered from a steady supply, not a step or wave
+    const wave: Wave = digital && cfg.mode === 'time' ? { kind: 'dc' } : { kind: kind.value as Wave['kind'], freq: parseSI(freq.value) || 1000 };
     const nl = buildNetlist(host.parts(), wave);
     if (!nl.els.some(e => e.t === 'V')) return fail('Add a battery (V) first.');
     const part = listed[+probe.value], pk = part ? nl.parts.indexOf(part) : -1;
     if (pk < 0) return fail('Pick a part to probe (it may be shorted or missing).');
-    const els = nl.els, srcK = els.findIndex(e => e.t === 'V'), pr = els[pk], vsrc = els[srcK] as { v: number; w?: Wave };
+    const els = nl.els, srcK = nl.src >= 0 ? nl.src : els.findIndex(e => e.t === 'V'), pr = els[pk], vsrc = els[srcK] as { v: number; w?: Wave };
     if (cfg.mode === 'time') {
       const R = els.reduce((a, e) => a + (e.t === 'R' ? e.v : 0), 0), C = els.reduce((a, e) => a + (e.t === 'C' ? e.v : 0), 0), Lh = els.reduce((a, e) => a + (e.t === 'L' ? e.v : 0), 0);
       const periodic = wave.kind === 'sine' || wave.kind === 'square', tau = Math.max(R * C, R ? Lh / R : 0);
-      const T = parseSI(tstop.value) > 0 ? parseSI(tstop.value) : periodic ? 4 / (wave.freq as number) : tau > 0 ? 5 * tau : 0.01;
-      const res = transient(els, nl.nodes, T, 800);
-      const isV = qty.value === 'v', y = res.t.map((_, k) => (isV ? res.v[k][pr.a] - res.v[k][pr.b] : res.i[k][pk] * 1e3));
+      const clocks = els.flatMap(e => (e.t === 'V' && e.w?.kind === 'clock' ? [e.w.freq ?? 1000] : [])); // clock sources set the time base: 20 periods of the slowest, at least 40 steps per period of the fastest
+      const T = parseSI(tstop.value) > 0 ? parseSI(tstop.value) : clocks.length ? 20 / Math.min(...clocks) : periodic ? 4 / (wave.freq as number) : tau > 0 ? 5 * tau : 0.01;
+      const steps = clocks.length ? Math.min(8000, Math.max(800, Math.ceil(T * Math.max(...clocks) * 40))) : 800;
+      const res = transient(els, nl.nodes, T, steps);
+      if (qty.value === 'logic') { // logic-analyser view: one lane per input/output pin of the chosen chip
+        const chip = part.kind === 'IC' ? part : null, def = chip ? COMPONENTS[chip.ref] : null;
+        if (!chip || !def || !['gates', 'seq', 'timer', 'comparator'].includes(def.model.type)) return fail('Logic view needs a logic chip, flip-flop, counter or 555 as the probe.');
+        const sup = pr as { a: number; b: number }, th = (res.v[0][sup.a] + res.v[0][sup.b]) / 2 || 2.5;
+        const lanes = def.pins.map((p, i) => ({ name: p.name, role: p.role, node: nl.nodeOf(chip.pins[i]) }))
+          .filter(l => (l.role === 'in' || l.role === 'out') && l.node < nl.nodes).sort((a, b) => (a.role === b.role ? 0 : a.role === 'in' ? -1 : 1))
+          .map(l => ({ name: l.name, role: l.role as 'in' | 'out', x: res.t, bits: res.v.map(v => v[l.node] > th) }));
+        out.innerHTML = logicChart(lanes, { title: `${chip.ref} logic view`, xlabel: 'time (s)', xunit: 's' }); calc.innerHTML = '';
+        csv = 'time_s,' + lanes.map(l => l.name).join(',') + '\n' + res.t.map((t, k) => [t, ...lanes.map(l => (l.bits[k] ? 1 : 0))].join(',')).join('\n');
+        return;
+      }
+      const isV = qty.value !== 'i', y = res.t.map((_, k) => (isV ? res.v[k][pr.a] - res.v[k][pr.b] : res.i[k][pk] * 1e3));
       const series: Series[] = [];
       if (isV) series.push({ name: 'source (battery)', x: res.t, y: res.t.map(t => srcValue(vsrc, t)), color: '#8b95a3', dash: '5 4' });
       series.push({ name: isV ? 'probe voltage' : 'probe current', x: res.t, y, color: '#2f81f7' });
@@ -84,7 +99,7 @@ export function initGraph(root: HTMLElement, host: Host) {
     } else {
       const f0 = parseSI(fmin.value), f1 = parseSI(fmax.value);
       if (!(f0 > 0 && f1 > f0)) return fail('Enter a valid frequency range (e.g. 10 to 100k).');
-      if (els.some(e => e.t === 'G' || e.t === 'T')) return fail('Logic ICs and the 555 are digital and are not part of the frequency sweep.');
+      if (els.some(e => e.t === 'G' || e.t === 'T' || e.t === 'F' || e.t === 'CP')) return fail('Logic ICs, flip-flops, counters, comparators and the 555 are digital and are not part of the frequency sweep.');
       const N = 121, fs = Array.from({ length: N }, (_, k) => f0 * (f1 / f0) ** (k / (N - 1)));
       const op = solve(els, nl.nodes, undefined, 0, { t: 0, pre: true }).v, gain: number[] = [], ph: number[] = [];
       for (const f of fs) {

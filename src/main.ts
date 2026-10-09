@@ -1,12 +1,13 @@
 import { COLS, RAIL_HOLES, buildNetlist, type Part } from './breadboard';
-import { solve } from './solver';
+import { solve, segCurrents } from './solver';
 import { initGraph } from './graph';
 import { COMPONENTS, placeHoles, isSimulable } from './components';
 const P = 22, X0 = 30, MY0 = 92, NS = 'http://www.w3.org/2000/svg';
-const tools = ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE', 'IC'] as const;
+const tools = ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE', 'IC', 'ZD', 'SD', 'SW', 'CLK'] as const;
 type Tool = (typeof tools)[number];
-const defaults: Record<Tool, number> = { R: 330, L: 0.01, LED: 0, D: 0, C: 1e-6, V: 5, WIRE: 0, SELECT: 0, ERASE: 0, IC: 0 };
+const defaults: Record<Tool, number> = { R: 330, L: 0.01, LED: 0, D: 0, C: 1e-6, V: 5, WIRE: 0, SELECT: 0, ERASE: 0, IC: 0, ZD: 5.1, SD: 0, SW: 1, CLK: 1000 };
 let tool: Tool = 'R', first: string | null = null;
+let live = false; // once Run DC has been used, flipping a switch / moving a pot / moving a chip re-runs it so LEDs and displays follow
 let sel: Part | null = null, selEnd: number | null = null; // Select tool: chosen part, and which end (0/1) is being moved
 const parts: Part[] = [];
 const svg = document.createElementNS(NS, 'svg');
@@ -55,10 +56,17 @@ layer.setAttribute('pointer-events', 'none'); // clicks still reach the holes un
 const bar = document.getElementById('bar')!, out = document.getElementById('out')!;
 const btn = (label: string, fn: () => void) => { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; bar.append(b); return b; };
 const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', L: 'Inductor (henries, e.g. 10m): acts like a wire in DC; matters in the time and frequency graphs.', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value or move an end. To remove a part, use Erase.', ERASE: 'Eraser: click, or drag across, a part to remove the whole part.', IC: 'Chip: pick a part in the list, then click a hole. DIP chips straddle the centre gap with pin 1 at the clicked column (bottom-left); transistors (TO-92) sit in 3 holes of the clicked row, left to right.' };
+Object.assign(hint, {
+  ZD: 'Zener diode: FIRST click = A (anode), SECOND = K (cathode). The value box is its breakdown voltage (e.g. 5.1). Reverse-biased past that voltage it clamps; use a series resistor.',
+  SD: 'Schottky diode: FIRST click = A (anode), SECOND = K (cathode). Drops about 0.3 V instead of 0.7 V.',
+  SW: 'Switch: click two holes. Click the switch to open or close it (when you have used Run DC, the result updates as you flip it).',
+  CLK: 'Clock source (0 / 5 V square wave): FIRST click = output, SECOND = ground. The value box is its frequency in Hz. Use the time graph (Logic view) to watch counters and flip-flops.',
+  V: 'Battery: FIRST click = + (positive), SECOND click = − (ground). For a ± supply add a second battery: its + goes to the first battery’s − (ground), its − gives the negative rail.',
+});
 const valIn = document.createElement('input'); // part value box (replaces prompt(), which browsers can block)
 valIn.style.cssText = 'width:80px;padding:5px;border-radius:4px;border:0'; valIn.title = 'Value: 4700, 4.7k, 100n, 1e-6 ...';
 const num = (t: string) => { const m = t.trim().match(/^([\d.]+(?:e[+-]?\d+)?)\s*([pnuµmkM]?)/i); if (!m) return NaN; return +m[1] * ({ p: 1e-12, n: 1e-9, u: 1e-6, µ: 1e-6, m: 1e-3, k: 1e3, M: 1e6 } as Record<string, number>)[m[2]] || +m[1]; };
-tools.forEach(t => { const b = btn(t === 'SELECT' ? 'Select' : t === 'ERASE' ? 'Erase' : t === 'IC' ? 'Chip' : t, () => { tool = t; first = null; sel = null; selEnd = null; redraw(); valIn.value = defaults[t] ? String(defaults[t]) : ''; valIn.disabled = !defaults[t]; out.textContent = hint[t]; bar.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }); });
+tools.forEach(t => { const b = btn(t === 'SELECT' ? 'Select' : t === 'ERASE' ? 'Erase' : t === 'IC' ? 'Chip' : t === 'ZD' ? 'Zener' : t === 'SD' ? 'Schottky' : t === 'SW' ? 'Switch' : t === 'CLK' ? 'Clock' : t, () => { tool = t; first = null; sel = null; selEnd = null; redraw(); const ed = !!defaults[t] && t !== 'SW'; valIn.value = ed ? String(defaults[t]) : ''; valIn.disabled = !ed; showPot(null); out.textContent = hint[t]; bar.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }); });
 bar.append(valIn); valIn.value = String(defaults.R);
 const icSel = document.createElement('select'); // chips from components.json that have a simulation model
 icSel.title = 'Part to place with the Chip tool'; icSel.style.cssText = 'padding:7px;border-radius:8px;border:1px solid var(--line);background:#10141a;color:inherit;font:inherit;max-width:190px';
@@ -69,8 +77,14 @@ Object.entries(COMPONENTS).filter(([id]) => isSimulable(id)).forEach(([id, d]) =
 });
 Object.values(groups).forEach(grp => icSel.append(grp));
 bar.append(icSel);
-const ioNote = (ref: string) => ({ gates: ' (supply)', opamp: ' (supply)', timer: ' (supply)', bjt: ' (C→E)', mosfet: ' (D→S)', planned: '' })[COMPONENTS[ref].model.type]; // what V and I mean for a chip row in Run DC
-const label = (p: Part) => (p.kind === 'IC' ? p.ref : p.kind + (p.value ? ' ' + p.value : ''));
+const potIn = document.createElement('input'); // wiper slider, shown while a potentiometer is selected
+potIn.type = 'range'; potIn.min = '0'; potIn.max = '100'; potIn.step = '1'; potIn.title = 'Potentiometer wiper position (% from end A)'; potIn.style.cssText = 'display:none;width:130px;padding:0;margin:0 8px';
+bar.append(potIn);
+const isPot = (p: Part | null): p is Extract<Part, { kind: 'IC' }> => p?.kind === 'IC' && COMPONENTS[p.ref].model.type === 'pot';
+function showPot(p: Part | null) { potIn.style.display = isPot(p) ? '' : 'none'; if (isPot(p)) potIn.value = String(p.value); }
+potIn.addEventListener('input', () => { const p = sel; if (!isPot(p)) return; p.value = +potIn.value; redraw(); out.textContent = `${p.ref}: wiper at ${p.value}% from end A.`; if (live) run(); });
+const ioNote = (ref: string) => ({ gates: ' (supply)', opamp: ' (supply)', timer: ' (supply)', seq: ' (supply)', comparator: ' (supply)', regulator: ' (input)', pot: ' (A→wiper)', led7: ' (all segments)', bjt: ' (C→E)', mosfet: ' (D→S)', planned: '' })[COMPONENTS[ref].model.type]; // what V and I mean for a chip row in Run DC
+const label = (p: Part) => (p.kind === 'IC' ? p.ref + (isPot(p) ? ` ${p.value}%` : '') : p.kind === 'SW' ? (p.value ? 'SW closed' : 'SW open') : p.kind + (p.value ? ' ' + p.value : ''));
 const eraserBtn = bar.querySelectorAll('button')[tools.indexOf('ERASE')];
 eraserBtn.title = 'Eraser'; eraserBtn.setAttribute('aria-label', 'Eraser');
 eraserBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>';
@@ -86,19 +100,20 @@ function erasePart(p: Part) { // the eraser removes the WHOLE part, like the era
 }
 function select(p: Part) {
   sel = p; selEnd = null;
-  const ed = p.kind !== 'WIRE' && p.value > 0;
-  valIn.disabled = !ed; valIn.value = ed ? String(p.value) : ''; redraw();
+  const ed = p.kind !== 'WIRE' && p.kind !== 'IC' && p.kind !== 'SW' && p.value > 0;
+  valIn.disabled = !ed; valIn.value = ed ? String(p.value) : ''; showPot(p); redraw();
+  if (p.kind === 'IC') { out.textContent = `Selected ${p.ref}.` + (isPot(p) ? ' Use the slider to set the wiper,' : '') + ' click a hole to move it there (its pin 1 / left leg goes to that hole). To remove it, use Erase.'; return; }
   out.textContent = `Selected ${p.kind}.` + (ed ? ' Edit the value above (press Enter),' : '') + ' click an end ring then a new hole to move it. To remove a part, use Erase.';
 }
 valIn.addEventListener('change', () => { // edit the selected part's value
-  if (tool !== 'SELECT' || !sel || sel.kind === 'WIRE' || !sel.value) return;
+  if (tool !== 'SELECT' || !sel || sel.kind === 'WIRE' || sel.kind === 'IC' || sel.kind === 'SW' || !sel.value) return;
   const n = num(valIn.value);
   if (!(n > 0)) { out.textContent = '⚠ Enter a valid value (e.g. 330, 4.7k, 100n).'; valIn.value = String(sel.value); return; }
-  (sel as { value: number }).value = n; redraw(); out.textContent = `Changed ${sel.kind} to ${n}.`;
+  (sel as { value: number }).value = n; redraw(); out.textContent = `Changed ${sel.kind} to ${n}.`; if (live) run();
 });
 svg.addEventListener('click', e => { // click empty board to deselect
   const t = (e.target as Element).tagName;
-  if (tool === 'SELECT' && sel && (t === 'rect' || t === 'svg')) { sel = null; selEnd = null; valIn.value = ''; valIn.disabled = true; redraw(); }
+  if (tool === 'SELECT' && sel && (t === 'rect' || t === 'svg')) { sel = null; selEnd = null; valIn.value = ''; valIn.disabled = true; showPot(null); redraw(); }
 });
 function undo() { // Esc / Ctrl+Z: cancel a half-made placement first, otherwise remove the last part
   if (first) { first = null; redraw(); out.textContent = 'Cancelled the pending click.'; return; }
@@ -115,7 +130,8 @@ function describe(id: string) { // plain-language hole name, so you can confirm 
 }
 function click(id: string) {
   if (tool === 'ERASE') return; // erasing is done by clicking / dragging over a part, not by its holes
-  if (tool === 'SELECT') { // move the chosen end of the selected part to this hole
+  if (tool === 'SELECT') { // move the chosen end of the selected part (or the whole chip) to this hole
+    if (sel?.kind === 'IC') { moveIC(id); return; }
     if (sel && selEnd !== null) {
       if (sel.pins[1 - selEnd] === id) { out.textContent = '⚠ Both ends cannot be in the same hole.'; return; }
       sel.pins[selEnd] = id; selEnd = null; redraw(); out.textContent = `Moved the ${sel.kind}.`;
@@ -126,45 +142,67 @@ function click(id: string) {
   if (!first) { first = id; redraw(); out.textContent = `Start: ${describe(id)}. Now tap the second hole (Undo cancels).`; return; }
   if (first !== id) {
     let value = defaults[tool];
-    if (tool === 'R' || tool === 'L' || tool === 'C' || tool === 'V') { const n = num(valIn.value); if (!(n > 0)) { out.textContent = '⚠ Enter a valid value (e.g. 330, 4.7k, 100n).'; first = null; redraw(); return; } value = n; }
+    if (tool === 'R' || tool === 'L' || tool === 'C' || tool === 'V' || tool === 'ZD' || tool === 'CLK') { const n = num(valIn.value); if (!(n > 0)) { out.textContent = '⚠ Enter a valid value (e.g. 330, 4.7k, 100n).'; first = null; redraw(); return; } value = n; }
     parts.push({ kind: tool, pins: [first, id], value } as Part);
     out.textContent = `Placed ${tool === 'WIRE' ? 'wire' : tool} from ${describe(first)} to ${describe(id)}.`;
   }
   first = null; redraw();
 }
+function moveIC(id: string) {
+  const c = sel; if (c?.kind !== 'IC') return;
+  const holes = placeHoles(c.ref, id);
+  if (!holes || !holes.every(h => pos.has(h))) { out.textContent = '⚠ Not enough room for the whole part there.'; return; }
+  if (parts.some(p => p !== c && p.kind === 'IC' && p.pins.some(h => holes.includes(h)))) { out.textContent = '⚠ That would overlap another part.'; return; }
+  c.pins = holes; redraw(); out.textContent = `Moved ${c.ref}.`; if (live) run();
+}
 function placeIC(id: string) { // click = anchor hole; placeHoles decides which holes the part occupies
   const ref = icSel.value, holes = placeHoles(ref, id), d = COMPONENTS[ref];
   if (!holes || !holes.every(h => pos.has(h))) { out.textContent = '⚠ Click a main-board hole with room for the whole part to its right.'; return; }
   if (parts.some(p => p.kind === 'IC' && p.pins.some(h => holes.includes(h)))) { out.textContent = '⚠ That would overlap another part.'; return; }
-  parts.push({ kind: 'IC', ref, pins: holes, value: 0 });
+  parts.push({ kind: 'IC', ref, pins: holes, value: d.model.type === 'pot' ? 50 : 0 }); // a pot starts with the wiper in the middle
   const [, c, r] = id.split(':');
   redraw(); out.textContent = d.package.startsWith('DIP') ? `Placed ${ref}: pin 1 at column ${+c + 1}, row 6. Wire VCC and GND to the rails, then Run DC.` : `Placed ${ref} in row ${+r + 1}, columns ${+c + 1}–${+c + d.pins.length}: ${d.pins.map(q => q.name).join(' ')} left to right.`;
 }
 const eraseable = (el: SVGElement, p: Part) => { if (tool !== 'ERASE') return; el.setAttribute('pointer-events', 'all'); el.style.cursor = 'pointer'; el.addEventListener('pointerdown', ev => { ev.preventDefault(); erasePart(p); }); el.addEventListener('click', () => erasePart(p)); };
+const selectable = (el: SVGElement, p: Part) => { if (tool !== 'SELECT') return; el.setAttribute('pointer-events', 'all'); el.style.cursor = 'pointer'; el.addEventListener('click', ev => { ev.stopPropagation(); select(p); }); };
+function drawDigit(cx: number, cy: number, lit: number[] = []) { // 7-segment glyph, segments a-g then dp; lit values 0..1 from the segment currents
+  const w = 7, h = 12, S: [number, number, number, number][] = [[-w, -h, w, -h], [w + 2, -h + 2, w + 2, -1], [w + 2, 1, w + 2, h - 2], [-w, h, w, h], [-w - 2, 1, -w - 2, h - 2], [-w - 2, -h + 2, -w - 2, -1], [-w, 0, w, 0]];
+  S.forEach(([a, b, c, d], i) => { const on = lit[i] ?? 0; add('line', { x1: cx + a, y1: cy + b, x2: cx + c, y2: cy + d, stroke: on > 0.03 ? '#ff4d4d' : '#3a1b1b', 'stroke-width': 4, 'stroke-linecap': 'round', opacity: on > 0.03 ? 0.45 + 0.55 * on : 1, 'pointer-events': 'none' }, layer); });
+  add('circle', { cx: cx + w + 8, cy: cy + h, r: 2.2, fill: (lit[7] ?? 0) > 0.03 ? '#ff4d4d' : '#3a1b1b', 'pointer-events': 'none' }, layer);
+}
 function drawTO92(p: Extract<Part, { kind: 'IC' }>) { // flat face over the three holes, pin names on the holes
   const xy = p.pins.map(h => pos.get(h)!), x0 = xy[0][0] - 10, x1 = xy[xy.length - 1][0] + 10, y = xy[0][1];
   const body = add('rect', { x: x0, y: y - 11, width: x1 - x0, height: 22, rx: 9, fill: '#1b1b1b', stroke: p === sel ? '#2f81f7' : '#000', 'stroke-width': 2, 'pointer-events': 'none' }, layer);
-  eraseable(body, p);
+  eraseable(body, p); selectable(body, p);
   xy.forEach(([x], i) => { add('text', { x, y: y + 4, 'font-size': 11, 'text-anchor': 'middle', fill: '#eee', 'font-family': 'Arial', 'pointer-events': 'none' }, layer).textContent = COMPONENTS[p.ref].pins[i].name; });
-  add('text', { x: (x0 + x1) / 2, y: y - 14, 'font-size': 8, 'text-anchor': 'middle', fill: '#aaa', 'pointer-events': 'none' }, layer).textContent = p.ref;
+  add('text', { x: (x0 + x1) / 2, y: y - 14, 'font-size': 8, 'text-anchor': 'middle', fill: '#aaa', 'pointer-events': 'none' }, layer).textContent = p.ref + (isPot(p) ? ` ${p.value}%` : '');
 }
-function drawIC(p: Extract<Part, { kind: 'IC' }>) {
+function drawIC(p: Extract<Part, { kind: 'IC' }>, segs?: number[]) {
   if (!COMPONENTS[p.ref].package.startsWith('DIP')) return drawTO92(p);
   const xy = p.pins.map(h => pos.get(h)!), n = xy.length, xs = xy.map(q => q[0]), x0 = Math.min(...xs) - 9, x1 = Math.max(...xs) + 9;
   const yTop = xy[n - 1][1] + 9, yBot = xy[0][1] - 9; // between row 5 (pins n/2+1..n) and row 6 (pins 1..n/2)
   const body = add('rect', { x: x0, y: yTop, width: x1 - x0, height: yBot - yTop, rx: 3, fill: '#222', stroke: p === sel ? '#2f81f7' : '#000', 'stroke-width': 2, 'pointer-events': 'none' }, layer);
-  eraseable(body, p);
+  eraseable(body, p); selectable(body, p);
   add('path', { d: `M${x0} ${(yTop + yBot) / 2 - 6} a6 6 0 0 1 0 12`, fill: '#555' }, layer); // notch marks the pin-1 end
   xy.forEach(([x, y]) => add('circle', { cx: x, cy: y, r: 4, fill: '#b8b8b8' }, layer));
-  add('text', { x: (x0 + x1) / 2, y: (yTop + yBot) / 2 + 4, 'font-size': 12, 'text-anchor': 'middle', fill: '#eee', 'font-family': 'Arial' }, layer).textContent = p.ref;
+  if (COMPONENTS[p.ref].model.type === 'led7') { drawDigit((x0 + x1) / 2, (yTop + yBot) / 2, segs); add('text', { x: x0 + 14, y: yTop + 9, 'font-size': 7, fill: '#aaa', 'pointer-events': 'none' }, layer).textContent = p.ref; }
+  else add('text', { x: (x0 + x1) / 2, y: (yTop + yBot) / 2 + 4, 'font-size': 12, 'text-anchor': 'middle', fill: '#eee', 'font-family': 'Arial', 'pointer-events': 'none' }, layer).textContent = p.ref;
   add('text', { x: xy[0][0], y: yBot - 3, 'font-size': 8, 'text-anchor': 'middle', fill: '#aaa' }, layer).textContent = '1';
 }
-const colors: Record<string, string> = { R: '#c9a227', L: '#9b5de5', LED: '#e5383b', D: '#555', C: '#2f81f7', V: '#2a9d4b', WIRE: '#111' };
-function redraw(glow = new Map<Part, number>()) {
+const colors: Record<string, string> = { R: '#c9a227', L: '#9b5de5', LED: '#e5383b', D: '#555', C: '#2f81f7', V: '#2a9d4b', WIRE: '#111', ZD: '#d97706', SD: '#64748b', SW: '#0d9488', CLK: '#db2777' };
+function drawSwitch(p: Part, x1: number, y1: number, x2: number, y2: number): SVGElement { // lever flat when closed, lifted when open; the fat invisible line is the click target
+  const open = !p.value, dx = x2 - x1, dy = y2 - y1, th = open ? -0.5 : 0, cs = Math.cos(th), sn = Math.sin(th);
+  add('circle', { cx: x1, cy: y1, r: 4, fill: colors.SW, 'pointer-events': 'none' }, layer); add('circle', { cx: x2, cy: y2, r: 4, fill: colors.SW, 'pointer-events': 'none' }, layer);
+  add('line', { x1, y1, x2: open ? x1 + (dx * cs - dy * sn) * 0.92 : x2, y2: open ? y1 + (dx * sn + dy * cs) * 0.92 : y2, stroke: colors.SW, 'stroke-width': 6, 'stroke-linecap': 'round', 'pointer-events': 'none' }, layer);
+  const hit = add('line', { x1, y1, x2, y2, stroke: 'transparent', 'stroke-width': 18, 'stroke-linecap': 'round', 'pointer-events': tool === 'ERASE' ? 'none' : 'stroke', style: tool === 'ERASE' ? '' : 'cursor:pointer' }, layer);
+  hit.addEventListener('click', () => { if (tool === 'ERASE') return; (p as { value: number }).value = open ? 1 : 0; redraw(); out.textContent = `Switch ${open ? 'closed' : 'open'}.`; if (live) run(); });
+  return hit;
+}
+function redraw(glow = new Map<Part, number>(), segs = new Map<Part, number[]>()) {
   save();
   layer.replaceChildren();
   parts.forEach(p => {
-    if (p.kind === 'IC') { drawIC(p); return; }
+    if (p.kind === 'IC') { drawIC(p, segs.get(p)); return; }
     const [x1, y1] = pos.get(p.pins[0])!, [x2, y2] = pos.get(p.pins[1])!;
     if (tool === 'ERASE') { // fat invisible hit area so thin wires are easy to catch; click or drag over a part erases it
       const hit = add('line', { x1, y1, x2, y2, stroke: 'transparent', 'stroke-width': 16, 'stroke-linecap': 'round', 'pointer-events': 'stroke', style: 'cursor:pointer' }, layer);
@@ -175,14 +213,14 @@ function redraw(glow = new Map<Part, number>()) {
     }
     const pick = tool === 'SELECT' && selEnd === null;
     if (p === sel) add('line', { x1, y1, x2, y2, stroke: '#2f81f7', 'stroke-width': 16, 'stroke-linecap': 'round', opacity: 0.35 }, layer);
-    const ln = add('line', { x1, y1, x2, y2, stroke: colors[p.kind], 'stroke-width': p.kind === 'WIRE' ? 3 : 8, 'stroke-linecap': 'round', opacity: p.kind === 'LED' ? 0.35 + (glow.get(p) ?? 0) * 0.65 : 1, 'pointer-events': pick ? 'stroke' : 'none', style: pick ? 'cursor:pointer' : '' }, layer);
+    const ln = p.kind === 'SW' ? drawSwitch(p, x1, y1, x2, y2) : add('line', { x1, y1, x2, y2, stroke: colors[p.kind], 'stroke-width': p.kind === 'WIRE' ? 3 : 8, 'stroke-linecap': 'round', opacity: p.kind === 'LED' ? 0.35 + (glow.get(p) ?? 0) * 0.65 : 1, 'pointer-events': pick ? 'stroke' : 'none', style: pick ? 'cursor:pointer' : '' }, layer);
     if (pick) ln.addEventListener('click', ev => { ev.stopPropagation(); select(p); });
-    const pol = p.kind === 'V' ? ['+', '−'] : p.kind === 'LED' || p.kind === 'D' ? ['A', 'K'] : null; // A = anode, K = cathode
+    const pol = p.kind === 'V' ? ['+', '−'] : p.kind === 'LED' || p.kind === 'D' || p.kind === 'ZD' || p.kind === 'SD' ? ['A', 'K'] : p.kind === 'CLK' ? ['OUT', 'GND'] : null; // A = anode, K = cathode
     pol?.forEach((t, i) => add('text', { x: i ? x2 : x1, y: (i ? y2 : y1) - 11, 'font-size': 11, 'font-weight': 'bold', 'text-anchor': 'middle', fill: t === '+' ? '#c1121f' : t === '−' ? '#1d4ed8' : '#222', stroke: '#f3efe2', 'stroke-width': 3, 'paint-order': 'stroke' }, layer).textContent = t);
-    if (p.kind !== 'WIRE') add('text', { x: (x1 + x2) / 2 + 6, y: (y1 + y2) / 2, 'font-size': 11, fill: '#000' }, layer).textContent = p.kind + (p.value ? ' ' + p.value : '');
+    if (p.kind !== 'WIRE') { const tx = (x1 + x2) / 2 + 6, late = tx > W - 90; add('text', { x: late ? tx - 12 : tx, y: (y1 + y2) / 2, 'font-size': 11, fill: '#000', 'text-anchor': late ? 'end' : 'start' }, layer).textContent = label(p); } // labels near the right edge are right-aligned so they stay on the board
   });
   if (first) { const [x, y] = pos.get(first)!; add('circle', { cx: x, cy: y, r: 9, fill: 'none', stroke: '#2f81f7', 'stroke-width': 3 }, layer); } // ring on the pending first click
-  if (sel && tool === 'SELECT') sel.pins.forEach((h, i) => { // end handles: click one, then click the new hole
+  if (sel && sel.kind !== 'IC' && tool === 'SELECT') sel.pins.forEach((h, i) => { // end handles: click one, then click the new hole
     const [x, y] = pos.get(h)!;
     const c = add('circle', { cx: x, cy: y, r: 9, fill: 'rgba(47,129,247,.25)', stroke: '#2f81f7', 'stroke-width': selEnd === i ? 4 : 2, 'pointer-events': 'all', style: 'cursor:pointer' }, layer);
     c.addEventListener('click', ev => { ev.stopPropagation(); selEnd = i; redraw(); out.textContent = 'Now click the new hole for this end (Esc to cancel).'; });
@@ -190,9 +228,13 @@ function redraw(glow = new Map<Part, number>()) {
 }
 function run() {
   const nl = buildNetlist(parts), r = solve(nl.els, nl.nodes);
-  const glow = new Map<Part, number>();
-  nl.parts.forEach((p, k) => p.kind === 'LED' && glow.set(p, Math.min(1, Math.max(0, r.i[k] / 0.02))));
-  redraw(glow);
+  live = true;
+  const glow = new Map<Part, number>(), segs = new Map<Part, number[]>();
+  nl.parts.forEach((p, k) => {
+    if (p.kind === 'LED') glow.set(p, Math.min(1, Math.max(0, r.i[k] / 0.02)));
+    const el = nl.els[k]; if (p.kind === 'IC' && el.t === 'DA') segs.set(p, segCurrents(el, r.v).map(i => Math.min(1, Math.max(0, i / 0.01)))); // 10 mA = fully lit
+  });
+  redraw(glow, segs);
   const eng = (x: number) => (Math.abs(x) >= 1 ? x.toFixed(3) + ' ' : (x * 1e3).toFixed(3) + ' m');
   out.textContent = [...nl.warnings.map(w => '⚠ ' + w), r.ok || !nl.els.length ? '' : '⚠ Did not converge / singular circuit.',
     ...nl.parts.map((p, k) => `${label(p)}${p.kind === 'IC' ? ioNote(p.ref) : ''}: ${eng(r.i[k] ?? 0)}A, ${eng(r.v[nl.els[k].a] - r.v[nl.els[k].b])}V`)].filter(Boolean).join('\n');
@@ -207,11 +249,11 @@ function load() {
     if (!Array.isArray(raw)) return;
     raw.forEach(p => { // keep only parts whose holes still exist on the current board layout
       if (p && p.kind === 'IC') { // chips: known model + one hole per datasheet pin
-        if (typeof p.ref === 'string' && isSimulable(p.ref) && Array.isArray(p.pins) && p.pins.length === COMPONENTS[p.ref].pins.length && p.pins.every((h: unknown) => typeof h === 'string' && pos.has(h))) parts.push({ kind: 'IC', ref: p.ref, pins: [...p.pins], value: 0 });
+        if (typeof p.ref === 'string' && isSimulable(p.ref) && Array.isArray(p.pins) && p.pins.length === COMPONENTS[p.ref].pins.length && p.pins.every((h: unknown) => typeof h === 'string' && pos.has(h))) parts.push({ kind: 'IC', ref: p.ref, pins: [...p.pins], value: typeof p.value === 'number' ? p.value : 0 });
         return;
       }
       const ok = p && Array.isArray(p.pins) && p.pins.length === 2 && p.pins.every((h: unknown) => typeof h === 'string' && pos.has(h)) && p.pins[0] !== p.pins[1]
-        && ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE'].includes(p.kind) && typeof p.value === 'number';
+        && ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE', 'ZD', 'SD', 'SW', 'CLK'].includes(p.kind) && typeof p.value === 'number';
       if (ok) parts.push({ kind: p.kind, pins: [p.pins[0], p.pins[1]], value: p.value } as Part);
     });
   } catch { /* corrupt data: start empty */ }

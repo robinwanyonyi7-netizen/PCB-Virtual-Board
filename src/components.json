@@ -2069,5 +2069,1420 @@
    "iq_mA": 0.1,
    "note": "555 macro-model: 5k-5k-5k divider, latch with RESET > TRIG > THRESHOLD priority, output stage with a typical high-level drop, discharge switch on while the output is low. No comparator delay or bias currents. Transient and DC only."
   }
+ },
+ "74HC74": {
+  "name": "74HC74",
+  "category": "logic",
+  "subtype": "Dual D flip-flop (rising edge, async set/clear)",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "~1CLR",
+    "role": "in"
+   },
+   {
+    "name": "1D",
+    "role": "in"
+   },
+   {
+    "name": "1CLK",
+    "role": "in"
+   },
+   {
+    "name": "~1PRE",
+    "role": "in"
+   },
+   {
+    "name": "1Q",
+    "role": "out"
+   },
+   {
+    "name": "~1Q",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "~2Q",
+    "role": "out"
+   },
+   {
+    "name": "2Q",
+    "role": "out"
+   },
+   {
+    "name": "~2PRE",
+    "role": "in"
+   },
+   {
+    "name": "2CLK",
+    "role": "in"
+   },
+   {
+    "name": "2D",
+    "role": "in"
+   },
+   {
+    "name": "~2CLR",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "seq",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "units": [
+    {
+     "kind": "dff",
+     "clk": 3,
+     "d": 2,
+     "q": 5,
+     "qn": 6,
+     "clr": 1,
+     "pre": 4
+    },
+    {
+     "kind": "dff",
+     "clk": 11,
+     "d": 12,
+     "q": 9,
+     "qn": 8,
+     "clr": 13,
+     "pre": 10
+    }
+   ],
+   "note": "Clocked digital model: outputs are 50 ohm switches to Vcc/GND, inputs switch at Vcc/2, unpowered (below 2 V) the chip forgets its state. State advances once per time step, so outputs change one step after the clock edge (stands in for propagation delay). Use the time-domain graph with a clock source (square wave or a 555); the DC run shows only the power-up state."
+  }
+ },
+ "74HC112": {
+  "name": "74HC112",
+  "category": "logic",
+  "subtype": "Dual JK flip-flop (falling edge, async set/clear)",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "~1CLK",
+    "role": "in"
+   },
+   {
+    "name": "1K",
+    "role": "in"
+   },
+   {
+    "name": "1J",
+    "role": "in"
+   },
+   {
+    "name": "~1PRE",
+    "role": "in"
+   },
+   {
+    "name": "1Q",
+    "role": "out"
+   },
+   {
+    "name": "~1Q",
+    "role": "out"
+   },
+   {
+    "name": "~2Q",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "2Q",
+    "role": "out"
+   },
+   {
+    "name": "~2PRE",
+    "role": "in"
+   },
+   {
+    "name": "2J",
+    "role": "in"
+   },
+   {
+    "name": "2K",
+    "role": "in"
+   },
+   {
+    "name": "~2CLK",
+    "role": "in"
+   },
+   {
+    "name": "~2CLR",
+    "role": "in"
+   },
+   {
+    "name": "~1CLR",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "seq",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "units": [
+    {
+     "kind": "jkff",
+     "clk": 1,
+     "k": 2,
+     "j": 3,
+     "pre": 4,
+     "q": 5,
+     "qn": 6,
+     "clr": 15
+    },
+    {
+     "kind": "jkff",
+     "clk": 13,
+     "j": 11,
+     "k": 12,
+     "pre": 10,
+     "q": 9,
+     "qn": 7,
+     "clr": 14
+    }
+   ],
+   "note": "Clocked digital model: outputs are 50 ohm switches to Vcc/GND, inputs switch at Vcc/2, unpowered (below 2 V) the chip forgets its state. State advances once per time step, so outputs change one step after the clock edge (stands in for propagation delay). Use the time-domain graph with a clock source (square wave or a 555); the DC run shows only the power-up state. Pinout recalled from the standard 74x112 diagram; double-check it against your datasheet."
+  }
+ },
+ "74HC161": {
+  "name": "74HC161",
+  "category": "logic",
+  "subtype": "4-bit synchronous binary counter, async clear, parallel load",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "~MR",
+    "role": "in"
+   },
+   {
+    "name": "CP",
+    "role": "in"
+   },
+   {
+    "name": "P0",
+    "role": "in"
+   },
+   {
+    "name": "P1",
+    "role": "in"
+   },
+   {
+    "name": "P2",
+    "role": "in"
+   },
+   {
+    "name": "P3",
+    "role": "in"
+   },
+   {
+    "name": "CEP",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "~PE",
+    "role": "in"
+   },
+   {
+    "name": "CET",
+    "role": "in"
+   },
+   {
+    "name": "Q3",
+    "role": "out"
+   },
+   {
+    "name": "Q2",
+    "role": "out"
+   },
+   {
+    "name": "Q1",
+    "role": "out"
+   },
+   {
+    "name": "Q0",
+    "role": "out"
+   },
+   {
+    "name": "TC",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "seq",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "units": [
+    {
+     "kind": "counter",
+     "clk": 2,
+     "clr": 1,
+     "load": 9,
+     "data": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "cep": 7,
+     "cet": 10,
+     "q": [
+      14,
+      13,
+      12,
+      11
+     ],
+     "tc": 15,
+     "sync_clr": false
+    }
+   ],
+   "note": "Clocked digital model: outputs are 50 ohm switches to Vcc/GND, inputs switch at Vcc/2, unpowered (below 2 V) the chip forgets its state. State advances once per time step, so outputs change one step after the clock edge (stands in for propagation delay). Use the time-domain graph with a clock source (square wave or a 555); the DC run shows only the power-up state."
+  }
+ },
+ "74HC163": {
+  "name": "74HC163",
+  "category": "logic",
+  "subtype": "4-bit synchronous binary counter, synchronous clear, parallel load",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "~SR",
+    "role": "in"
+   },
+   {
+    "name": "CP",
+    "role": "in"
+   },
+   {
+    "name": "P0",
+    "role": "in"
+   },
+   {
+    "name": "P1",
+    "role": "in"
+   },
+   {
+    "name": "P2",
+    "role": "in"
+   },
+   {
+    "name": "P3",
+    "role": "in"
+   },
+   {
+    "name": "CEP",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "~PE",
+    "role": "in"
+   },
+   {
+    "name": "CET",
+    "role": "in"
+   },
+   {
+    "name": "Q3",
+    "role": "out"
+   },
+   {
+    "name": "Q2",
+    "role": "out"
+   },
+   {
+    "name": "Q1",
+    "role": "out"
+   },
+   {
+    "name": "Q0",
+    "role": "out"
+   },
+   {
+    "name": "TC",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "seq",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "units": [
+    {
+     "kind": "counter",
+     "clk": 2,
+     "clr": 1,
+     "load": 9,
+     "data": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "cep": 7,
+     "cet": 10,
+     "q": [
+      14,
+      13,
+      12,
+      11
+     ],
+     "tc": 15,
+     "sync_clr": true
+    }
+   ],
+   "note": "Clocked digital model: outputs are 50 ohm switches to Vcc/GND, inputs switch at Vcc/2, unpowered (below 2 V) the chip forgets its state. State advances once per time step, so outputs change one step after the clock edge (stands in for propagation delay). Use the time-domain graph with a clock source (square wave or a 555); the DC run shows only the power-up state."
+  }
+ },
+ "74HC393": {
+  "name": "74HC393",
+  "category": "logic",
+  "subtype": "Dual 4-bit binary ripple counter (falling edge, async reset)",
+  "package": "DIP-14",
+  "pins": [
+   {
+    "name": "1CP",
+    "role": "in"
+   },
+   {
+    "name": "1MR",
+    "role": "in"
+   },
+   {
+    "name": "1Q0",
+    "role": "out"
+   },
+   {
+    "name": "1Q1",
+    "role": "out"
+   },
+   {
+    "name": "1Q2",
+    "role": "out"
+   },
+   {
+    "name": "1Q3",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "2Q3",
+    "role": "out"
+   },
+   {
+    "name": "2Q2",
+    "role": "out"
+   },
+   {
+    "name": "2Q1",
+    "role": "out"
+   },
+   {
+    "name": "2Q0",
+    "role": "out"
+   },
+   {
+    "name": "2MR",
+    "role": "in"
+   },
+   {
+    "name": "2CP",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "seq",
+   "vcc": 14,
+   "gnd": 7,
+   "rout_ohm": 50,
+   "units": [
+    {
+     "kind": "ripple",
+     "clk": 1,
+     "clr": 2,
+     "q": [
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "kind": "ripple",
+     "clk": 13,
+     "clr": 12,
+     "q": [
+      11,
+      10,
+      9,
+      8
+     ]
+    }
+   ],
+   "note": "Clocked digital model: outputs are 50 ohm switches to Vcc/GND, inputs switch at Vcc/2, unpowered (below 2 V) the chip forgets its state. State advances once per time step, so outputs change one step after the clock edge (stands in for propagation delay). Use the time-domain graph with a clock source (square wave or a 555); the DC run shows only the power-up state."
+  }
+ },
+ "74HC4017": {
+  "name": "74HC4017",
+  "category": "logic",
+  "subtype": "Decade counter with 10 decoded outputs (chaser)",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "Q5",
+    "role": "out"
+   },
+   {
+    "name": "Q1",
+    "role": "out"
+   },
+   {
+    "name": "Q0",
+    "role": "out"
+   },
+   {
+    "name": "Q2",
+    "role": "out"
+   },
+   {
+    "name": "Q6",
+    "role": "out"
+   },
+   {
+    "name": "Q7",
+    "role": "out"
+   },
+   {
+    "name": "Q3",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "Q8",
+    "role": "out"
+   },
+   {
+    "name": "Q4",
+    "role": "out"
+   },
+   {
+    "name": "Q9",
+    "role": "out"
+   },
+   {
+    "name": "CO",
+    "role": "out"
+   },
+   {
+    "name": "~CE",
+    "role": "in"
+   },
+   {
+    "name": "CP",
+    "role": "in"
+   },
+   {
+    "name": "MR",
+    "role": "in"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "seq",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "units": [
+    {
+     "kind": "decade",
+     "clk": 14,
+     "ce": 13,
+     "clr": 15,
+     "q": [
+      3,
+      2,
+      4,
+      7,
+      10,
+      1,
+      5,
+      6,
+      9,
+      11
+     ],
+     "co": 12
+    }
+   ],
+   "note": "Clocked digital model: outputs are 50 ohm switches to Vcc/GND, inputs switch at Vcc/2, unpowered (below 2 V) the chip forgets its state. State advances once per time step, so outputs change one step after the clock edge (stands in for propagation delay). Use the time-domain graph with a clock source (square wave or a 555); the DC run shows only the power-up state."
+  }
+ },
+ "74HC595": {
+  "name": "74HC595",
+  "category": "logic",
+  "subtype": "8-bit shift register with output latch (serial in, parallel out)",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "Q1",
+    "role": "out"
+   },
+   {
+    "name": "Q2",
+    "role": "out"
+   },
+   {
+    "name": "Q3",
+    "role": "out"
+   },
+   {
+    "name": "Q4",
+    "role": "out"
+   },
+   {
+    "name": "Q5",
+    "role": "out"
+   },
+   {
+    "name": "Q6",
+    "role": "out"
+   },
+   {
+    "name": "Q7",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "Q7S",
+    "role": "out"
+   },
+   {
+    "name": "~MR",
+    "role": "in"
+   },
+   {
+    "name": "SHCP",
+    "role": "in"
+   },
+   {
+    "name": "STCP",
+    "role": "in"
+   },
+   {
+    "name": "~OE",
+    "role": "in"
+   },
+   {
+    "name": "DS",
+    "role": "in"
+   },
+   {
+    "name": "Q0",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "seq",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "units": [
+    {
+     "kind": "shift595",
+     "clk": 11,
+     "ds": 14,
+     "stcp": 12,
+     "mr": 10,
+     "oe": 13,
+     "q": [
+      15,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "q7s": 9
+    }
+   ],
+   "note": "Clocked digital model: outputs are 50 ohm switches to Vcc/GND, inputs switch at Vcc/2, unpowered (below 2 V) the chip forgets its state. State advances once per time step, so outputs change one step after the clock edge. Use the time graph with a clock source. SHCP shifts DS in on its rising edge; STCP copies the shift register to the outputs on its rising edge; ~OE high floats Q0-Q7; ~MR clears the shift register. Q7S is the serial output of the shift register."
+  }
+ },
+ "74HC373": {
+  "name": "74HC373",
+  "category": "logic",
+  "subtype": "Octal transparent latch (3-state outputs)",
+  "package": "DIP-20",
+  "pins": [
+   {
+    "name": "~OE",
+    "role": "in"
+   },
+   {
+    "name": "Q0",
+    "role": "out"
+   },
+   {
+    "name": "D0",
+    "role": "in"
+   },
+   {
+    "name": "D1",
+    "role": "in"
+   },
+   {
+    "name": "Q1",
+    "role": "out"
+   },
+   {
+    "name": "Q2",
+    "role": "out"
+   },
+   {
+    "name": "D2",
+    "role": "in"
+   },
+   {
+    "name": "D3",
+    "role": "in"
+   },
+   {
+    "name": "Q3",
+    "role": "out"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "LE",
+    "role": "in"
+   },
+   {
+    "name": "Q4",
+    "role": "out"
+   },
+   {
+    "name": "D4",
+    "role": "in"
+   },
+   {
+    "name": "D5",
+    "role": "in"
+   },
+   {
+    "name": "Q5",
+    "role": "out"
+   },
+   {
+    "name": "Q6",
+    "role": "out"
+   },
+   {
+    "name": "D6",
+    "role": "in"
+   },
+   {
+    "name": "D7",
+    "role": "in"
+   },
+   {
+    "name": "Q7",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "74HC",
+   "supply_V": "2 to 6"
+  },
+  "model": {
+   "type": "seq",
+   "vcc": 20,
+   "gnd": 10,
+   "rout_ohm": 50,
+   "units": [
+    {
+     "kind": "latch373",
+     "clk": 11,
+     "oe": 1,
+     "d": [
+      3,
+      4,
+      7,
+      8,
+      13,
+      14,
+      17,
+      18
+     ],
+     "q": [
+      2,
+      5,
+      6,
+      9,
+      12,
+      15,
+      16,
+      19
+     ]
+    }
+   ],
+   "note": "Clocked digital model: outputs are 50 ohm switches to Vcc/GND, inputs switch at Vcc/2, unpowered (below 2 V) the chip forgets its state. State advances once per time step, so outputs change one step after the clock edge. Use the time graph with a clock source. Outputs follow D while LE is high and hold the last value when LE falls; ~OE high floats the outputs."
+  }
+ },
+ "74HC4511": {
+  "name": "74HC4511",
+  "category": "logic",
+  "subtype": "BCD to 7-segment decoder (active-high outputs, common-cathode)",
+  "package": "DIP-16",
+  "pins": [
+   {
+    "name": "B",
+    "role": "in"
+   },
+   {
+    "name": "C",
+    "role": "in"
+   },
+   {
+    "name": "~LT",
+    "role": "in"
+   },
+   {
+    "name": "~BI",
+    "role": "in"
+   },
+   {
+    "name": "LE",
+    "role": "terminal"
+   },
+   {
+    "name": "D",
+    "role": "in"
+   },
+   {
+    "name": "A",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "e",
+    "role": "out"
+   },
+   {
+    "name": "d",
+    "role": "out"
+   },
+   {
+    "name": "c",
+    "role": "out"
+   },
+   {
+    "name": "b",
+    "role": "out"
+   },
+   {
+    "name": "a",
+    "role": "out"
+   },
+   {
+    "name": "g",
+    "role": "out"
+   },
+   {
+    "name": "f",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "family": "4511 (CMOS)",
+   "supply_V": "3 to 15"
+  },
+  "model": {
+   "type": "gates",
+   "fn": "seg",
+   "vcc": 16,
+   "gnd": 8,
+   "rout_ohm": 50,
+   "gates": [
+    {
+     "in": [
+      7,
+      1,
+      2,
+      6,
+      3,
+      4
+     ],
+     "out": 13,
+     "bit": 0,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      7,
+      1,
+      2,
+      6,
+      3,
+      4
+     ],
+     "out": 12,
+     "bit": 1,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      7,
+      1,
+      2,
+      6,
+      3,
+      4
+     ],
+     "out": 11,
+     "bit": 2,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      7,
+      1,
+      2,
+      6,
+      3,
+      4
+     ],
+     "out": 10,
+     "bit": 3,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      7,
+      1,
+      2,
+      6,
+      3,
+      4
+     ],
+     "out": 9,
+     "bit": 4,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      7,
+      1,
+      2,
+      6,
+      3,
+      4
+     ],
+     "out": 15,
+     "bit": 5,
+     "inv_in": [
+      4,
+      5
+     ]
+    },
+    {
+     "in": [
+      7,
+      1,
+      2,
+      6,
+      3,
+      4
+     ],
+     "out": 14,
+     "bit": 6,
+     "inv_in": [
+      4,
+      5
+     ]
+    }
+   ],
+   "note": "Digits 0-9 as on a CD4511 (6 and 9 have tails); 10-15 blank; ~LT low lights every segment, ~BI low blanks. The LE latch pin is NOT modelled: the decoder is always transparent. Drive each segment through a resistor."
+  }
+ },
+ "DISP7": {
+  "name": "7-segment display (common cathode)",
+  "category": "display",
+  "subtype": "Single digit, common cathode, 10-pin",
+  "package": "DIP-10",
+  "pins": [
+   {
+    "name": "e",
+    "role": "in"
+   },
+   {
+    "name": "d",
+    "role": "in"
+   },
+   {
+    "name": "COM",
+    "role": "gnd"
+   },
+   {
+    "name": "c",
+    "role": "in"
+   },
+   {
+    "name": "dp",
+    "role": "in"
+   },
+   {
+    "name": "b",
+    "role": "in"
+   },
+   {
+    "name": "a",
+    "role": "in"
+   },
+   {
+    "name": "COM",
+    "role": "gnd"
+   },
+   {
+    "name": "f",
+    "role": "in"
+   },
+   {
+    "name": "g",
+    "role": "in"
+   }
+  ],
+  "params": {
+   "colour": "red",
+   "If_max_mA": 20
+  },
+  "model": {
+   "type": "led7",
+   "segments": [
+    7,
+    6,
+    4,
+    2,
+    1,
+    9,
+    10,
+    5
+   ],
+   "com": [
+    3,
+    8
+   ],
+   "note": "Eight LED segments (a-g, dp) sharing a cathode (the two COM pins are tied inside). Each segment needs a series resistor; they light on Run DC in proportion to current."
+  }
+ },
+ "POT1K": {
+  "name": "Potentiometer 1K",
+  "category": "passive",
+  "subtype": "Linear potentiometer",
+  "package": "POT",
+  "pins": [
+   {
+    "name": "A",
+    "role": "terminal"
+   },
+   {
+    "name": "W",
+    "role": "terminal"
+   },
+   {
+    "name": "B",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "resistance_ohm": 1000,
+   "taper": "linear"
+  },
+  "model": {
+   "type": "pot",
+   "r_ohm": 1000,
+   "a": 1,
+   "w": 2,
+   "b": 3,
+   "note": "Wiper position (percent from end A) is set with the slider after you select the part. Wiper loading is modelled; track resistance is limited to at least 1 ohm at the ends."
+  }
+ },
+ "POT10K": {
+  "name": "Potentiometer 10K",
+  "category": "passive",
+  "subtype": "Linear potentiometer",
+  "package": "POT",
+  "pins": [
+   {
+    "name": "A",
+    "role": "terminal"
+   },
+   {
+    "name": "W",
+    "role": "terminal"
+   },
+   {
+    "name": "B",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "resistance_ohm": 10000,
+   "taper": "linear"
+  },
+  "model": {
+   "type": "pot",
+   "r_ohm": 10000,
+   "a": 1,
+   "w": 2,
+   "b": 3,
+   "note": "Wiper position (percent from end A) is set with the slider after you select the part. Wiper loading is modelled; track resistance is limited to at least 1 ohm at the ends."
+  }
+ },
+ "POT100K": {
+  "name": "Potentiometer 100K",
+  "category": "passive",
+  "subtype": "Linear potentiometer",
+  "package": "POT",
+  "pins": [
+   {
+    "name": "A",
+    "role": "terminal"
+   },
+   {
+    "name": "W",
+    "role": "terminal"
+   },
+   {
+    "name": "B",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "resistance_ohm": 100000,
+   "taper": "linear"
+  },
+  "model": {
+   "type": "pot",
+   "r_ohm": 100000,
+   "a": 1,
+   "w": 2,
+   "b": 3,
+   "note": "Wiper position (percent from end A) is set with the slider after you select the part. Wiper loading is modelled; track resistance is limited to at least 1 ohm at the ends."
+  }
+ },
+ "LM7805": {
+  "name": "LM7805",
+  "category": "power",
+  "subtype": "5 V positive regulator",
+  "package": "TO-220",
+  "pins": [
+   {
+    "name": "IN",
+    "role": "terminal"
+   },
+   {
+    "name": "GND",
+    "role": "terminal"
+   },
+   {
+    "name": "OUT",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vout_V": 5,
+   "dropout_V": 2
+  },
+  "model": {
+   "type": "regulator",
+   "in": 1,
+   "ref": 2,
+   "out": 3,
+   "vout": 5,
+   "dropout_V": 2,
+   "rout_ohm": 0.1,
+   "iq_mA": 5,
+   "note": "Regulator macro-model: output = reference pin + Vout while the input is at least the dropout voltage above it; below that the output follows the input minus the dropout. 0.1 ohm output resistance. No current limit, thermal shutdown or reverse conduction (it cannot sink current)."
+  }
+ },
+ "LM7809": {
+  "name": "LM7809",
+  "category": "power",
+  "subtype": "9 V positive regulator",
+  "package": "TO-220",
+  "pins": [
+   {
+    "name": "IN",
+    "role": "terminal"
+   },
+   {
+    "name": "GND",
+    "role": "terminal"
+   },
+   {
+    "name": "OUT",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vout_V": 9,
+   "dropout_V": 2
+  },
+  "model": {
+   "type": "regulator",
+   "in": 1,
+   "ref": 2,
+   "out": 3,
+   "vout": 9,
+   "dropout_V": 2,
+   "rout_ohm": 0.1,
+   "iq_mA": 5,
+   "note": "Regulator macro-model: output = reference pin + Vout while the input is at least the dropout voltage above it; below that the output follows the input minus the dropout. 0.1 ohm output resistance. No current limit, thermal shutdown or reverse conduction (it cannot sink current)."
+  }
+ },
+ "LM7812": {
+  "name": "LM7812",
+  "category": "power",
+  "subtype": "12 V positive regulator",
+  "package": "TO-220",
+  "pins": [
+   {
+    "name": "IN",
+    "role": "terminal"
+   },
+   {
+    "name": "GND",
+    "role": "terminal"
+   },
+   {
+    "name": "OUT",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vout_V": 12,
+   "dropout_V": 2
+  },
+  "model": {
+   "type": "regulator",
+   "in": 1,
+   "ref": 2,
+   "out": 3,
+   "vout": 12,
+   "dropout_V": 2,
+   "rout_ohm": 0.1,
+   "iq_mA": 5,
+   "note": "Regulator macro-model: output = reference pin + Vout while the input is at least the dropout voltage above it; below that the output follows the input minus the dropout. 0.1 ohm output resistance. No current limit, thermal shutdown or reverse conduction (it cannot sink current)."
+  }
+ },
+ "LM317": {
+  "name": "LM317",
+  "category": "power",
+  "subtype": "Adjustable positive regulator (1.25 V reference)",
+  "package": "TO-220",
+  "pins": [
+   {
+    "name": "ADJ",
+    "role": "terminal"
+   },
+   {
+    "name": "OUT",
+    "role": "terminal"
+   },
+   {
+    "name": "IN",
+    "role": "terminal"
+   }
+  ],
+  "params": {
+   "Vref_V": 1.25,
+   "dropout_V": 2.5
+  },
+  "model": {
+   "type": "regulator",
+   "in": 3,
+   "ref": 1,
+   "out": 2,
+   "vout": 1.25,
+   "dropout_V": 2.5,
+   "rout_ohm": 0.1,
+   "iq_mA": 0.05,
+   "note": "Regulator macro-model: output = reference pin + Vout while the input is at least the dropout voltage above it; below that the output follows the input minus the dropout. 0.1 ohm output resistance. No current limit, thermal shutdown or reverse conduction (it cannot sink current). Set the output with the usual divider: OUT-to-ADJ resistor R1 (about 240 ohm) and ADJ-to-GND resistor R2: Vout = 1.25 (1 + R2/R1)."
+  }
+ },
+ "LM393": {
+  "name": "LM393",
+  "category": "analog",
+  "subtype": "Dual comparator (open-collector outputs)",
+  "package": "DIP-8",
+  "pins": [
+   {
+    "name": "OUT1",
+    "role": "out"
+   },
+   {
+    "name": "IN1-",
+    "role": "in"
+   },
+   {
+    "name": "IN1+",
+    "role": "in"
+   },
+   {
+    "name": "GND",
+    "role": "gnd"
+   },
+   {
+    "name": "IN2+",
+    "role": "in"
+   },
+   {
+    "name": "IN2-",
+    "role": "in"
+   },
+   {
+    "name": "OUT2",
+    "role": "out"
+   },
+   {
+    "name": "VCC",
+    "role": "vcc"
+   }
+  ],
+  "params": {
+   "supply_V": "2 to 36"
+  },
+  "model": {
+   "type": "comparator",
+   "vp": 8,
+   "vn": 4,
+   "amps": [
+    {
+     "inp": 3,
+     "inn": 2,
+     "out": 1
+    },
+    {
+     "inp": 5,
+     "inn": 6,
+     "out": 7
+    }
+   ],
+   "rsat_ohm": 60,
+   "iq_mA": 0.4,
+   "vmin_V": 2,
+   "note": "Open-collector output: pulls low (about 60 ohm to GND) while IN+ is below IN-, otherwise lets go, so it needs an external pull-up resistor. DC and time response; not in the frequency sweep."
+  }
  }
 }

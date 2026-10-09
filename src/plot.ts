@@ -42,3 +42,22 @@ export function chart(series: Series[], o: ChartOpts): string {
     + `<text x="${L + pw / 2}" y="${H - 6}" text-anchor="middle" fill="#8b95a3">${esc(o.xlabel)}</text>`
     + `<text transform="translate(12 ${T + ph / 2}) rotate(-90)" text-anchor="middle" fill="#8b95a3">${esc(o.ylabel)}</text></svg>`;
 }
+export interface Lane { name: string; role: 'in' | 'out'; x: number[]; bits: boolean[] }
+/** Logic-analyser view: one stepped lane per signal (inputs grey, outputs blue). */
+export function logicChart(lanes: Lane[], o: { title: string; xlabel: string; xunit?: string }): string {
+  if (!lanes.length) return '';
+  const W = 640, L = 62, R = 24, T = 28, LH = 26, B = 40, H = T + B + lanes.length * LH, pw = W - L - R, xs = lanes[0].x, x0 = xs[0], x1 = xs[xs.length - 1] || x0 + 1;
+  const X = (x: number) => L + ((x - x0) / (x1 - x0 || 1)) * pw;
+  let g = '';
+  for (const t of niceTicks(x0, x1)) g += `<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${T + lanes.length * LH}" stroke="#2c3541"/><text x="${X(t)}" y="${T + lanes.length * LH + 16}" text-anchor="middle">${si(t)}${o.xunit ?? ''}</text>`;
+  lanes.forEach((ln, i) => {
+    const hi = T + i * LH + 5, lo = T + i * LH + LH - 6, col = ln.role === 'in' ? '#9aa7b4' : '#58a6ff';
+    let pts = '';
+    ln.bits.forEach((b, k) => { const y = b ? hi : lo; if (k && ln.bits[k - 1] !== b) pts += `${X(ln.x[k]).toFixed(1)},${(b ? lo : hi)} `; pts += `${X(ln.x[k]).toFixed(1)},${y} `; });
+    g += `<line x1="${L}" x2="${L + pw}" y1="${T + (i + 1) * LH}" y2="${T + (i + 1) * LH}" stroke="#222b36"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="miter"/>`
+      + `<text x="${L - 6}" y="${T + i * LH + LH / 2 + 4}" text-anchor="end" fill="${col}">${esc(ln.name)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="${esc(o.title)}" font-family="system-ui,sans-serif" font-size="11" fill="#c9d1d9">`
+    + `<rect width="${W}" height="${H}" rx="8" fill="#10141a"/><text x="${L}" y="16" fill="#8b95a3">${esc(o.title)}</text>${g}<rect x="${L}" y="${T}" width="${pw}" height="${lanes.length * LH}" fill="none" stroke="#42505f"/>`
+    + `<text x="${L + pw / 2}" y="${H - 6}" text-anchor="middle" fill="#8b95a3">${esc(o.xlabel)}</text></svg>`;
+}
