@@ -1,6 +1,12 @@
+declare const describe: (...args: any[]) => any;
+declare const it: ((...args: any[]) => any) & {
+  skip: (...args: any[]) => any;
+  only: (...args: any[]) => any;
+};
+declare const expect: (value: any, message?: string) => any;
+
 // Tests for the parts the apartment power-monitoring project needs (mains, transformer, optocoupler, relay, driver, buzzer)
 // and a whole-chain simulation: mains -> isolating transformer -> rectifier -> window comparator -> fault-classification logic.
-import { describe, it, expect } from 'vitest';
 import { solve, transient, type El } from '../src/solver';
 import { buildNetlist, type Part } from '../src/breadboard';
 import { COMPONENTS, icElement, placeHoles } from '../src/components';
