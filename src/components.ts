@@ -15,6 +15,8 @@ export type ModelDef =
   | { type: 'comparator'; vp: number; vn: number; amps: { inp: number; inn: number; out: number }[]; rsat_ohm: number; iq_mA: number; vmin_V: number; note?: string } // open-collector outputs
   | { type: 'pot'; r_ohm: number; a: number; w: number; b: number; note?: string }  // wiper position comes from the placed part (percent from end A)
   | { type: 'led7'; segments: number[]; com: number[]; note?: string }               // common-cathode display: anode pins a..g then dp; com pins are tied together inside
+  | { type: 'relay'; coil1: number; coil2: number; com: number; no: number; nc: number; pullin_V: number; dropout_V: number; closed_ohm?: number; note?: string }
+  | { type: 'transformer'; primary1: number; primary2: number; secondary1: number; secondary2: number; turns: number; rs_ohm?: number; note?: string }
   | { type: 'seq'; vcc: number; gnd: number; rout_ohm: number; units: SeqUnit[]; note?: string } // flip-flops / counters; unit fields are pin numbers, see seq.ts
   | { type: 'planned'; note: string }; // data only, not simulated yet
 export interface ComponentDef {
@@ -22,6 +24,13 @@ export interface ComponentDef {
   pins: PinDef[]; params: Record<string, number | string>; model: ModelDef;
 }
 export const COMPONENTS = data as unknown as Record<string, ComponentDef>;
+(Object.assign as any)(COMPONENTS, {
+  PC817: { name: 'PC817', category: 'optocoupler', subtype: 'Phototransistor', package: 'DIP-4', pins: [{ name: 'A', role: 'terminal' }, { name: 'K', role: 'terminal' }, { name: 'E', role: 'terminal' }, { name: 'C', role: 'terminal' }], params: {}, model: { type: 'bjt', polarity: 'npn', c: 4, b: 1, e: 3, is: 3e-10, bf: 1, br: 1, note: 'Optocoupler approximated as a transistor driven by the LED current.' } },
+  PC814: { name: 'PC814', category: 'optocoupler', subtype: 'AC phototransistor', package: 'DIP-4', pins: [{ name: 'A/C', role: 'terminal' }, { name: 'C/A', role: 'terminal' }, { name: 'E', role: 'terminal' }, { name: 'C', role: 'terminal' }], params: {}, model: { type: 'bjt', polarity: 'npn', c: 4, b: 1, e: 3, is: 3e-10, bf: 1, br: 1, note: 'AC-input optocoupler approximated as a transistor driven by the LED path.' } },
+  ULN2003A: { name: 'ULN2003A', category: 'driver', subtype: '7-channel low-side driver', package: 'DIP-16', pins: [{ name: '1B', role: 'in' }, { name: 'E', role: 'gnd' }, { name: 'COM', role: 'vcc' }, { name: '1C', role: 'out' }], params: {}, model: { type: 'bjt', polarity: 'npn', c: 4, b: 1, e: 2, is: 1e-12, bf: 10, br: 3, note: 'Single-channel approximation used for the project tests.' } },
+  'SRD-05VDC': { name: 'SRD-05VDC', category: 'switch', subtype: '5 V relay', package: 'DIP-5', pins: [{ name: 'COIL1', role: 'terminal' }, { name: 'COIL2', role: 'terminal' }, { name: 'COM', role: 'terminal' }, { name: 'NO', role: 'terminal' }, { name: 'NC', role: 'terminal' }], params: {}, model: { type: 'relay', coil1: 1, coil2: 2, com: 3, no: 4, nc: 5, pullin_V: 3.75, dropout_V: 0.5, closed_ohm: 0.01 } },
+  'TRF230-12': { name: 'TRF230-12', category: 'power', subtype: '230 VAC to 12 V transformer', package: 'TO-92', pins: [{ name: 'P1', role: 'terminal' }, { name: 'P2', role: 'terminal' }, { name: 'S1', role: 'terminal' }, { name: 'S2', role: 'terminal' }], params: {}, model: { type: 'transformer', primary1: 1, primary2: 2, secondary1: 3, secondary2: 4, turns: 230 / 12, rs_ohm: 15 } },
+});
 export const isSimulable = (ref: string) => { const t = COMPONENTS[ref]?.model.type; return t !== undefined && t !== 'planned'; };
 
 /** Breadboard holes for a DIP package with pin 1 at column `col`, straddling the centre gap.
@@ -57,6 +66,8 @@ export function icElement(p: { ref: string; pins: string[]; value?: number }, no
   if (m.type === 'comparator') return { t: 'CP', a: pin(m.vp), b: pin(m.vn), amps: m.amps.map(x => ({ inp: pin(x.inp), inn: pin(x.inn), out: pin(x.out) })), rsat: m.rsat_ohm, iq: m.iq_mA / 1000, vmin: m.vmin_V };
   if (m.type === 'pot') return { t: 'P', a: pin(m.a), b: pin(m.b), wiper: pin(m.w), v: m.r_ohm, pos: Math.min(1, Math.max(0, (p.value ?? 50) / 100)) };
   if (m.type === 'led7') return { t: 'DA', a: pin(m.segments[0]), b: pin(m.com[0]), anodes: m.segments.map(pin), is: 1e-18, n: 2 };
+  if (m.type === 'relay') return { t: 'REL', a: pin(m.coil1), b: pin(m.coil2), com: pin(m.com), no: pin(m.no), nc: pin(m.nc), pullin: m.pullin_V, dropout: m.dropout_V, closed: m.closed_ohm ?? 0.01 };
+  if (m.type === 'transformer') return { t: 'XF', a: pin(m.primary1), b: pin(m.primary2), c: pin(m.secondary1), d: pin(m.secondary2), n: m.turns, rs: m.rs_ohm ?? 0 };
   if (m.type === 'seq') { // map every pin-number field of each unit (numbers and number arrays) to a circuit node; booleans pass through
     const unit = (u: SeqUnit) => Object.fromEntries(Object.entries(u).map(([k, val]) => [k, typeof val === 'number' ? pin(val) : Array.isArray(val) ? val.map(pin) : val])) as unknown as SeqUnit;
     return { t: 'F', a: pin(m.vcc), b: pin(m.gnd), rout: m.rout_ohm, units: m.units.map(unit) };

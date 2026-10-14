@@ -8,7 +8,7 @@ export const strip = (h: string) => {
     `c${a}${+b < 5 ? 'T' : 'B'}`; // a-e joined, f-j joined (gap in the middle)
 };
 export type Part =
-  | { kind: 'R' | 'L' | 'C' | 'V' | 'LED' | 'D' | 'ZD' | 'SD' | 'SW' | 'CLK'; pins: [string, string]; value: number } // ZD value = Zener volts; SW value = 1 closed / 0 open; CLK value = Hz (5 V, 0 / 5 V square, pins = [output, ground])
+  | { kind: 'R' | 'L' | 'C' | 'V' | 'LED' | 'D' | 'ZD' | 'SD' | 'SW' | 'CLK' | 'BZ' | 'AC'; pins: [string, string]; value: number } // ZD value = Zener volts; SW value = 1 closed / 0 open; CLK value = Hz (5 V, 0 / 5 V square, pins = [output, ground]); AC = mains source in RMS volts.
   | { kind: 'WIRE'; pins: [string, string]; value: 0 }
   | { kind: 'IC'; ref: string; pins: string[]; value: number }; // ref = key in components.json; pins[i] = hole of datasheet pin i+1; value = wiper % for a potentiometer, else 0
 export interface Netlist { els: El[]; parts: Part[]; nodes: number; warnings: string[]; src: number; nodeOf: (hole: string) => number } // src = index in els of the battery (-1 if none); nodeOf maps a hole to its circuit node
@@ -42,6 +42,8 @@ export function buildNetlist(parts: Part[], wave?: Wave): Netlist { // wave appl
     else if (p.kind === 'SD') els.push({ t: 'D', a, b, is: 3e-8, n: 1.05 }); // Schottky: about 0.35 V at 10 mA
     else if (p.kind === 'SW') els.push({ t: 'R', a, b, v: p.value ? 0.01 : 1e9 });
     else if (p.kind === 'CLK') els.push({ t: 'V', a, b, v: 5, w: { kind: 'clock', freq: p.value } });
+    else if (p.kind === 'BZ') els.push({ t: 'R', a, b, v: p.value });
+    else if (p.kind === 'AC') els.push({ t: 'V', a, b, v: p.value * Math.SQRT2, w: { kind: 'sine', freq: 50 } });
     else { if (p === bat) src = els.length; els.push(p === bat && wave ? { t: 'V', a, b, v: p.value, w: wave } : { t: p.kind, a, b, v: p.value }); }
     used.push(p);
   });

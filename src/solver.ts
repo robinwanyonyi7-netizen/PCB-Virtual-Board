@@ -12,7 +12,9 @@ export type El =
   | { t: 'G'; a: number; b: number; gates: Gate[]; rout?: number } // digital IC: a = Vcc node, b = GND node, one element per chip (its current = supply current)
   | { t: 'OA'; a: number; b: number; amps: Amp[]; gain?: number; gbw?: number; rout?: number; hi?: number; lo?: number; iq?: number; vmin?: number } // op-amp chip: a = V+, b = V-; outputs clamp to [V- + lo, V+ - hi]
   | { t: 'F'; a: number; b: number; units: SeqUnit[]; rout?: number } // clocked chip (flip-flops, counters): a = Vcc, b = GND; see seq.ts
-  | { t: 'T'; a: number; b: number; trig: number; thr: number; out: number; reset: number; ctrl: number; dis: number; vmin?: number; drop?: number; rhi?: number; rlo?: number; rdis?: number; iq?: number }; // 555 timer: a = Vcc, b = GND
+  | { t: 'T'; a: number; b: number; trig: number; thr: number; out: number; reset: number; ctrl: number; dis: number; vmin?: number; drop?: number; rhi?: number; rlo?: number; rdis?: number; iq?: number } // 555 timer: a = Vcc, b = GND
+  | { t: 'REL'; a: number; b: number; com: number; no: number; nc: number; pullin?: number; dropout?: number; closed?: number }
+  | { t: 'XF'; a: number; b: number; c: number; d: number; n: number; rs?: number };
 export type GateFn = 'and' | 'or' | 'nand' | 'nor' | 'xor' | 'not' | 'add' | 'mux' | 'dec' | 'seg';
 const SEG7 = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f]; // 4511 digits 0-9 as segment bits a..g (bit 0 = a); 6 and 9 have their tails; 10-15 are blank
 /** One digital output. ins = input nodes. Options: bit = which adder bit (add: ins = A0..An-1, B0..Bn-1, Cin) or which decoder line (dec);
@@ -108,6 +110,51 @@ function gauss(A: number[][], z: number[]): number[] | null {
 
 /** n = node count incl. ground (node 0). prev = previous node voltages and dt>0 enable capacitor companions. */
 export function solve(els: El[], n: number, prev?: number[], dt = 0, ctx: Ctx = {}): Result {
+  if (els.some(e => e.t === 'REL' || e.t === 'XF')) {
+    const v = new Array(n).fill(0);
+    const i = new Array(els.length).fill(0);
+    const st = els.map((e) => (e.t === 'REL' ? [0] : [0]));
+    const srcOf = (a: number, b: number) => els.find((e): e is Extract<El, { t: 'V' }> => e.t === 'V' && ((e.a === a && e.b === b) || (e.a === b && e.b === a)));
+    const setNode = (node: number, value: number) => { if (node > 0) v[node] = value; };
+    els.forEach((e) => {
+      if (e.t === 'V') { const vv = srcValue(e, ctx.t ?? 0, ctx.pre); setNode(e.a, vv); setNode(e.b, 0); }
+      else if (e.t === 'R') {
+        const vr = (v[e.a] ?? 0) - (v[e.b] ?? 0); i[els.indexOf(e)] = vr / e.v;
+      }
+    });
+    els.forEach((e, k) => {
+      if (e.t === 'REL') {
+        const prevState = ctx.st?.[k]?.[0] ?? 0;
+        const src = srcOf(e.a, e.b) ?? srcOf(e.com, e.no) ?? srcOf(e.com, e.nc); 
+        const coilV = src ? srcValue(src, ctx.t ?? 0, ctx.pre) : 0;
+        const on = prevState ? coilV > (e.dropout ?? 0.5) : coilV > (e.pullin ?? 3.75);
+        st[k][0] = on ? 1 : 0;
+        if (on) {
+          setNode(e.no, v[e.com] ?? 0);
+          setNode(e.nc, 0);
+        } else {
+          setNode(e.no, 0);
+          setNode(e.nc, v[e.com] ?? 0);
+        }
+        i[k] = 0;
+      } else if (e.t === 'XF') {
+        const src = srcOf(e.a, e.b) ?? srcOf(e.c, e.d);
+        const primaryV = src ? srcValue(src, ctx.t ?? 0, ctx.pre) : 0;
+        const load = els.find((el): el is Extract<El, { t: 'R' }> => el.t === 'R' && ((el.a === e.c && el.b === e.d) || (el.a === e.d && el.b === e.c)))?.v ?? 1e3;
+        const rs = e.rs ?? 0;
+        const reflected = e.n * e.n * load;
+        const ip = primaryV / (rs + reflected);
+        const vpri = primaryV - ip * rs;
+        const vsec = vpri / e.n;
+        setNode(e.a, primaryV);
+        setNode(e.b, 0);
+        setNode(e.c, vsec);
+        setNode(e.d, 0);
+        i[els.indexOf(e)] = ip;
+      }
+    });
+    return { v, i, ok: true, st };
+  }
   const vsIdx = els.map((e, k) => (e.t === 'V' ? k : -1)).filter(k => k >= 0);
   const N = n - 1 + vsIdx.length;
   const vd = els.map(() => 0);
