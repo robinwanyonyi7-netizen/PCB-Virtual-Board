@@ -87,7 +87,7 @@ bar.append(potIn);
 const isPot = (p: Part | null): p is Extract<Part, { kind: 'IC' }> => p?.kind === 'IC' && COMPONENTS[p.ref].model.type === 'pot';
 function showPot(p: Part | null) { potIn.style.display = isPot(p) ? '' : 'none'; if (isPot(p)) potIn.value = String(p.value); }
 potIn.addEventListener('input', () => { const p = sel; if (!isPot(p)) return; p.value = +potIn.value; redraw(); out.textContent = `${p.ref}: wiper at ${p.value}% from end A.`; if (live) run(); });
-const ioNote = (ref: string) => ({ gates: ' (supply)', opamp: ' (supply)', timer: ' (supply)', seq: ' (supply)', comparator: ' (supply)', regulator: ' (input)', pot: ' (A→wiper)', led7: ' (all segments)', bjt: ' (C→E)', mosfet: ' (D→S)', planned: '' })[COMPONENTS[ref].model.type]; // what V and I mean for a chip row in Run DC
+const ioNote = (ref: string) => ({ gates: ' (supply)', opamp: ' (supply)', timer: ' (supply)', seq: ' (supply)', comparator: ' (supply)', regulator: ' (input)', pot: ' (A→wiper)', led7: ' (all segments)', bjt: ' (C→E)', mosfet: ' (D→S)', relay: ' (coil)', transformer: ' (primary)', planned: '' })[COMPONENTS[ref].model.type]; // what V and I mean for a chip row in Run DC
 const label = (p: Part) => (p.kind === 'IC' ? p.ref + (isPot(p) ? ` ${p.value}%` : '') : p.kind === 'SW' ? (p.value ? 'SW closed' : 'SW open') : p.kind + (p.value ? ' ' + p.value : ''));
 const eraserBtn = bar.querySelectorAll('button')[tools.indexOf('ERASE')];
 eraserBtn.title = 'Eraser'; eraserBtn.setAttribute('aria-label', 'Eraser');
