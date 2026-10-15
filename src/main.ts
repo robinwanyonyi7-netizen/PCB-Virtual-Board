@@ -2,6 +2,7 @@ import { COLS, RAIL_HOLES, buildNetlist, type Part } from './breadboard';
 import { solve, segCurrents } from './solver';
 import { initGraph } from './graph';
 import { COMPONENTS, placeHoles, isSimulable } from './components';
+import { initICPicker } from './icpicker';
 const P = 22, X0 = 30, MY0 = 92, NS = 'http://www.w3.org/2000/svg';
 const tools = ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE', 'IC', 'ZD', 'SD', 'SW', 'CLK'] as const;
 type Tool = (typeof tools)[number];
@@ -55,7 +56,7 @@ svg.append(layer); // re-append so parts/wires draw above the holes (SVG z-order
 layer.setAttribute('pointer-events', 'none'); // clicks still reach the holes underneath
 const bar = document.getElementById('bar')!, out = document.getElementById('out')!;
 const btn = (label: string, fn: () => void) => { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; bar.append(b); return b; };
-const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', L: 'Inductor (henries, e.g. 10m): acts like a wire in DC; matters in the time and frequency graphs.', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value or move an end. To remove a part, use Erase.', ERASE: 'Eraser: click, or drag across, a part to remove the whole part.', IC: 'Chip: pick a part in the list, then click a hole. DIP chips straddle the centre gap with pin 1 at the clicked column (bottom-left); transistors (TO-92) sit in 3 holes of the clicked row, left to right.' };
+const hint: Record<string, string> = { R: 'Resistor: click two holes (either order).', L: 'Inductor (henries, e.g. 10m): acts like a wire in DC; matters in the time and frequency graphs.', C: 'Capacitor: click two holes (open circuit in DC).', V: 'Battery: FIRST click = + (positive), SECOND click = − (ground).', LED: 'LED: FIRST click = A (anode, +), SECOND click = K (cathode, −).', D: 'Diode: FIRST click = A (anode), SECOND click = K (cathode, the striped end).', WIRE: 'Wire: click two holes to join them.', SELECT: 'Select: click a part to edit its value or move an end. To remove a part, use Erase.', ERASE: 'Eraser: click, or drag across, a part to remove the whole part.', IC: 'Chip: pick a part in the gallery, then click a hole. DIP chips straddle the centre gap with pin 1 at the clicked column (bottom-left); transistors (TO-92) sit in 3 holes of the clicked row, left to right.' };
 Object.assign(hint, {
   ZD: 'Zener diode: FIRST click = A (anode), SECOND = K (cathode). The value box is its breakdown voltage (e.g. 5.1). Reverse-biased past that voltage it clamps; use a series resistor.',
   SD: 'Schottky diode: FIRST click = A (anode), SECOND = K (cathode). Drops about 0.3 V instead of 0.7 V.',
@@ -77,6 +78,9 @@ Object.entries(COMPONENTS).filter(([id]) => isSimulable(id)).forEach(([id, d]) =
 });
 Object.values(groups).forEach(grp => icSel.append(grp));
 bar.append(icSel);
+initICPicker({ bar, select: icSel, chipTool: bar.querySelectorAll('button')[tools.indexOf('IC')] as HTMLButtonElement, onPick: id => { // image gallery replaces the visible dropdown (icSel stays, hidden, as the value placeIC reads)
+  const d = COMPONENTS[id]; out.textContent = `${d.name} selected. ` + (d.package.startsWith('DIP') ? 'Click a main-board hole: pin 1 goes there and the chip straddles the centre gap.' : 'Click a main-board hole: its pins go in the next holes to the right, in the same row.');
+} });
 const potIn = document.createElement('input'); // wiper slider, shown while a potentiometer is selected
 potIn.type = 'range'; potIn.min = '0'; potIn.max = '100'; potIn.step = '1'; potIn.title = 'Potentiometer wiper position (% from end A)'; potIn.style.cssText = 'display:none;width:130px;padding:0;margin:0 8px';
 bar.append(potIn);

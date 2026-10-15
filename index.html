@@ -68,6 +68,30 @@
     #out { font-size:14px; }
   }
   @media (max-width:480px) { h1 { font-size:19px; } button { padding:6px 9px; } }
+  /* chip picker gallery (src/icpicker.ts) */
+  #icpicker { margin:10px 0 0; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+  #icpicker[hidden] { display:none; }
+  .icp-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-bottom:1px solid var(--line); font-weight:600; }
+  .icp-head span { margin-left:8px; color:var(--muted); font-size:12px; font-weight:400; }
+  .icp-body { position:relative; max-height:min(60vh,560px); overflow:auto; padding:4px 12px 14px; -webkit-overflow-scrolling:touch; }
+  .icp-body summary { display:flex; align-items:center; gap:8px; padding:10px 2px 6px; cursor:pointer; list-style:none; font-size:14px; }
+  .icp-body summary::-webkit-details-marker { display:none; }
+  .icp-body summary::before { content:''; width:7px; height:7px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(-45deg); transition:transform .12s; }
+  .icp-body details[open] > summary::before { transform:rotate(45deg); }
+  .icp-body summary small { color:var(--muted); }
+  .icp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; padding:4px 0 8px; }
+  .icp-tile { display:flex; flex-direction:column; align-items:stretch; gap:3px; min-width:0; min-height:0; padding:8px; text-align:left; font-weight:400; background:transparent; border:1px solid transparent; border-radius:8px; }
+  .icp-tile:hover { background:#2a323d; border-color:#42505f; }
+  .icp-tile[aria-pressed="true"] { background:rgba(47,129,247,.18); border-color:var(--accent); }
+  .icp-img { display:block; margin-bottom:4px; background:#f3efe2; border-radius:6px; } /* same cream as the board, so the dark chips stand out */
+  .icp-img svg { display:block; width:100%; height:auto; filter:none; }
+  .icp-name { font-size:14px; font-weight:600; }
+  .icp-pkg { color:var(--muted); font-size:11px; }
+  .icp-what { font-size:12.5px; }
+  .icp-use { color:var(--muted); font-size:12px; }
+  .icp-use b { color:var(--text); font-weight:600; }
+  .icp-x { padding:4px 9px; }
+  @media (max-width:480px) { .icp-grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); } .icp-head span { display:none; } }
 </style>
 </head>
 <body>

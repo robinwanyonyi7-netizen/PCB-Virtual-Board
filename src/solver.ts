@@ -1,7 +1,9 @@
 import { type SeqUnit, outCount, outNodes, outputs, stepUnits, unitValues } from './seq';
 // Modified Nodal Analysis solver: DC operating point (Newton for diodes) + backward-Euler transient.
 export type El =
-  | { t: 'R' | 'V' | 'I' | 'C' | 'L'; a: number; b: number; v: number; w?: Wave } // ohm | volt (a=+) | amp a->b | farad | henry; w = waveform for a V source
+  | { t: 'R'; a: number; b: number; v: number } // ohm
+  | { t: 'V'; a: number; b: number; v: number; w?: Wave } // volt (a=+); w = waveform
+  | { t: 'I' | 'C' | 'L'; a: number; b: number; v: number; w?: Wave } // amp a->b | farad | henry
   | { t: 'D'; a: number; b: number; is?: number; n?: number; bv?: number }      // anode a, cathode b; bv = Zener breakdown voltage (at 5 mA)
   | { t: 'DA'; a: number; b: number; anodes: number[]; is?: number; n?: number } // LED array (7-segment): a = first anode, b = common cathode; current = sum of all segments
   | { t: 'P'; a: number; b: number; wiper: number; v: number; pos?: number }     // potentiometer, v ohms end to end, wiper at pos (0 = end a, 1 = end b)

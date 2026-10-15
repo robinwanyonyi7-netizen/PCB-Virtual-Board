@@ -1,19 +1,10 @@
-declare const describe: (...args: any[]) => any;
-declare const it: ((...args: any[]) => any) & {
-  skip: (...args: any[]) => any;
-  only: (...args: any[]) => any;
-};
-declare const expect: (value: any, message?: string) => any;
-
 // Tests for the parts the apartment power-monitoring project needs (mains, transformer, optocoupler, relay, driver, buzzer)
 // and a whole-chain simulation: mains -> isolating transformer -> rectifier -> window comparator -> fault-classification logic.
+import { describe, it, expect } from 'vitest';
 import { solve, transient, type El } from '../src/solver';
 import { buildNetlist, type Part } from '../src/breadboard';
 import { COMPONENTS, icElement, placeHoles } from '../src/components';
-
-// This demo fixture is not present in the stripped-down workspace used for this file.
-// Keep the test file compiling by providing a no-op fallback board for the final project test.
-const projectParts: Part[] = [];
+import { projectParts } from './project';
 
 /** Place a chip: pins whose names are in `map` get those nodes, everything else gets a fresh floating node. */
 const chip = (ref: string, map: Record<string, number>, alloc: () => number) => { const d = COMPONENTS[ref]; return icElement({ ref, pins: d.pins.map((_, i) => `p${i + 1}`) }, h => map[d.pins[+h.slice(1) - 1].name] ?? alloc())!; };
@@ -161,9 +152,9 @@ describe('mains and transformer parts on the breadboard', () => {
 });
 
 describe('project parts board', () => {
-  it.skip('the demo board builds without warnings and the ULN2003A sounds its buzzer (about 25 mA)', () => {
+  it('the project board builds without warnings and its 170 ohm buzzer draws about 29 mA', () => {
     const nl = buildNetlist(projectParts), r = solve(nl.els, nl.nodes);
     expect(nl.warnings).toEqual([]); expect(r.ok).toBe(true);
-    const bz = nl.parts.findIndex(p => p.kind === 'BZ'); expect(Math.abs(r.i[bz]) * 1e3).toBeGreaterThan(24); expect(Math.abs(r.i[bz]) * 1e3).toBeLessThan(26);
+    const bz = nl.parts.findIndex(p => p.kind === 'BZ'); expect(Math.abs(r.i[bz]) * 1e3).toBeCloseTo(5 / 170 * 1e3, 2);
   });
 });
