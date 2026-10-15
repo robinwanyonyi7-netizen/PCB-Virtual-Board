@@ -3,6 +3,8 @@ import { solve, segCurrents } from './solver';
 import { initGraph } from './graph';
 import { COMPONENTS, placeHoles, isSimulable } from './components';
 import { initICPicker } from './icpicker';
+import '@fontsource/barlow/latin-400.css'; import '@fontsource/barlow/latin-500.css'; import '@fontsource/barlow/latin-600.css'; // site fonts, bundled by Vite (no external requests)
+import '@fontsource/chakra-petch/latin-600.css'; import '@fontsource/chakra-petch/latin-700.css';
 const P = 22, X0 = 30, MY0 = 92, NS = 'http://www.w3.org/2000/svg';
 const tools = ['R', 'L', 'LED', 'D', 'C', 'V', 'WIRE', 'SELECT', 'ERASE', 'IC', 'ZD', 'SD', 'SW', 'CLK'] as const;
 type Tool = (typeof tools)[number];

@@ -3,95 +3,172 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14181d">
+<meta name="theme-color" content="#0c2620">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Virtual Breadboard</title>
 <style>
-  :root { --bg:#14181d; --panel:#1d232b; --line:#2c3541; --text:#e6e9ee; --muted:#8b95a3; --accent:#2f81f7; --ok:#2a9d4b; --bad:#d64545; }
-  * { box-sizing: border-box; }
-  body { margin:0; min-height:100vh; background:radial-gradient(1200px 600px at 50% -10%, #1f2833, var(--bg)); color:var(--text); font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-  main { max-width:min(100%,1000px); margin:0 auto; padding:20px 12px 32px; }
-  header { text-align:center; margin-bottom:14px; }
-  h1 { margin:0; font-size:22px; letter-spacing:.3px; }
-  header p { margin:4px 0 0; color:var(--muted); font-size:13px; }
-  #bar { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px; padding:10px; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,.25); }
-  button { padding:7px 12px; border:1px solid var(--line); border-radius:8px; background:#2a323d; color:var(--text); font:inherit; font-weight:600; cursor:pointer; transition:background .12s, color .12s, transform .05s, border-color .12s; }
-  button:hover { background:#344050; border-color:#42505f; }
+  /* Solder-mask bench: the page is a bare PCB, the breadboard is the part under test.
+     Mask green + ENIG gold + silkscreen white. Fonts are bundled from @fontsource (imported in src/main.ts). */
+  :root {
+    --mask-0:#071814; --mask-1:#0c2620; --mask-2:#11342b; --mask-3:#17433a;
+    --trace:#2b5a4a; --trace-hi:#4a8a72;
+    --gold:#e8b64a; --gold-hi:#ffd479; --gold-ink:#1d1405;
+    --silk:#eaf0e4; --silk-dim:#9fbfae; --bad:#ff6a5a;
+    --font-ui:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font-display:'Chakra Petch','Barlow',system-ui,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    /* names the TypeScript / older rules still use */
+    --bg:var(--mask-1); --panel:var(--mask-2); --line:var(--trace); --text:var(--silk); --muted:var(--silk-dim); --accent:var(--gold); --ok:var(--gold);
+  }
+  * { box-sizing:border-box; }
+  html { background:var(--mask-0); }
+  body { margin:0; min-height:100vh; color:var(--silk); font:15px/1.5 var(--font-ui);
+    background:radial-gradient(circle at 1px 1px, rgba(232,182,74,.09) 1px, transparent 1.6px) 0 0/26px 26px, linear-gradient(180deg,var(--mask-1),var(--mask-0) 85%); }
+  main { max-width:1240px; margin:0 auto; padding:26px 16px 48px; }
+  :focus-visible { outline:2px solid var(--gold-hi); outline-offset:2px; }
+
+  /* ---- header: a differential pair routed in from two pads ---- */
+  header { position:relative; padding:2px 0 58px; margin-bottom:4px; }
+  h1 { margin:0; font:700 clamp(30px,4.6vw,46px)/1.05 var(--font-display); letter-spacing:.01em; }
+  header p { margin:8px 0 0; max-width:56ch; color:var(--silk-dim); font-size:16px; }
+  header::after { content:''; position:absolute; left:0; right:0; bottom:0; height:44px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 44' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23e8b64a' stroke-width='2.5' stroke-linejoin='round'%3E%3Cpath vector-effect='non-scaling-stroke' d='M0 8H300l18 18H1000'/%3E%3Cpath vector-effect='non-scaling-stroke' d='M0 18H300l18 18H1000'/%3E%3C/g%3E%3C/svg%3E") 0 0/100% 100% no-repeat;
+    -webkit-mask-image:linear-gradient(90deg,#000 55%,transparent); mask-image:linear-gradient(90deg,#000 55%,transparent); animation:route 1.1s cubic-bezier(.2,.7,.2,1) both; }
+  header::before { content:''; position:absolute; left:0; bottom:0; width:22px; height:44px; z-index:1;
+    background:radial-gradient(circle at 9px 8px,var(--mask-1) 0 2.5px,var(--gold) 3px 6px,transparent 6.5px), radial-gradient(circle at 9px 18px,var(--mask-1) 0 2.5px,var(--gold) 3px 6px,transparent 6.5px); }
+  @keyframes route { from { clip-path:inset(0 100% 0 0); } to { clip-path:inset(0 0 0 0); } }
+
+  /* ---- buttons: gold-outlined pads ---- */
+  button { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid var(--trace); border-radius:6px; background:var(--mask-2); color:var(--silk); font:600 14px/1.2 var(--font-ui); cursor:pointer; transition:background .12s,border-color .12s,color .12s,transform .05s; }
+  button:hover { border-color:var(--gold); background:var(--mask-3); }
   button:active { transform:translateY(1px); }
-  button.on { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 0 0 2px rgba(47,129,247,.3); }
-  /* tool badges = the first 9 buttons (R, L, LED, D, C, V, WIRE, Select, Eraser): neutral button + colour indicator; hover/active inverts it */
-  #bar button:nth-of-type(-n+9) { --c:#8b95a3; --ct:#14181d; }
-  #bar button:nth-of-type(9)::before { display:none !important; }
-  #bar button:nth-of-type(-n+8)::before { content:''; display:inline-block; width:14px; height:6px; margin-right:7px; vertical-align:middle; border-radius:3px; background:var(--c); transition:background .12s; }
-  #bar button:nth-of-type(-n+8):hover, #bar button.on:nth-of-type(-n+8) { background:var(--c); color:var(--ct); border-color:var(--c); }
-  #bar button:nth-of-type(-n+8):hover::before, #bar button.on:nth-of-type(-n+8)::before { background:var(--ct); }
-  #bar button.on:nth-of-type(-n+8) { box-shadow:0 0 0 2px color-mix(in srgb, var(--c) 35%, transparent); }
-  #bar input { width:84px; padding:7px 8px; margin:0 8px 0 4px; border:1px solid var(--line); border-radius:8px; background:#10141a; color:var(--text); font:inherit; text-align:center; }
-  #bar input:focus { outline:2px solid var(--accent); border-color:transparent; }
-  #bar input:disabled { opacity:.4; }
-  #bar input ~ button { background:transparent; }          /* action buttons (after the value box) */
-  #bar input ~ button:hover { background:#2a323d; }
-  #bar input ~ button.run { background:var(--ok); border-color:var(--ok); color:#fff; } /* Run DC */
-  #bar input ~ button.run:hover { background:var(--ok); filter:brightness(1.1); }
-  #app { overflow:auto; max-width:100%; margin:12px 0 6px; padding:4px 4px 20px; -webkit-overflow-scrolling:touch; }  /* the board scrolls inside here when zoomed */
-  svg { filter:drop-shadow(0 10px 22px rgba(0,0,0,.45)); }
-  #out { margin:6px auto 0; padding:12px 14px; max-width:520px; min-height:64px; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; color:var(--text); font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space:pre-wrap; }
-  #graph { margin:14px auto 0; max-width:700px; }
-  #graph details { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:0 12px; }
-  #graph summary { cursor:pointer; padding:12px 2px; font-weight:600; }
-  #graph .gbody { padding-bottom:12px; }
-  #graph .gtabs { display:flex; gap:6px; margin-bottom:10px; } #graph .gtabs button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
-  #graph .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px; }
-  #graph label { display:flex; flex-direction:column; gap:3px; color:var(--muted); font-size:12px; }
-  #graph select, #graph input { padding:7px 8px; border:1px solid var(--line); border-radius:8px; background:#10141a; color:var(--text); font:inherit; min-width:0; }
-  #graph .gact { display:flex; gap:8px; margin:10px 0 6px; } #graph .gact .run { background:var(--ok); border-color:var(--ok); color:#fff; }
-  #graph .gcalc { margin-top:12px; padding:10px 12px; background:#10141a; border:1px solid var(--line); border-radius:10px; }
-  #graph .gcalc h4 { margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600; }
-  #graph dl { display:grid; grid-template-columns:minmax(120px,max-content) 1fr; gap:4px 14px; margin:0; font-size:13px; }
-  #graph dt { color:var(--muted); } #graph dd { margin:0; font-family:ui-monospace,Menlo,Consolas,monospace; word-break:break-word; }
-  #graph .mean { display:block; margin-top:2px; font:12px/1.4 system-ui,sans-serif; color:var(--muted); }
+  button.on { border-color:var(--gold); background:rgba(232,182,74,.16); color:var(--gold-hi); box-shadow:inset 0 0 0 1px var(--gold); }
+
+  /* ---- toolbar: a tray on small screens, a tool rail on wide ones ---- */
+  #bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px; background:var(--mask-2); border:1px solid var(--trace); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  #bar button { --c:var(--silk-dim); }
+  #bar button:nth-of-type(1)  { --c:#d1a82c; } /* R   */  #bar button:nth-of-type(2)  { --c:#a66bf0; } /* L   */
+  #bar button:nth-of-type(3)  { --c:#ff5a5f; } /* LED */  #bar button:nth-of-type(4)  { --c:#9aa3ad; } /* D   */
+  #bar button:nth-of-type(5)  { --c:#3b8cff; } /* C   */  #bar button:nth-of-type(6)  { --c:#35c26b; } /* V   */
+  #bar button:nth-of-type(7)  { --c:#e8efe6; } /* wire */ #bar button:nth-of-type(8)  { --c:#8fb7a3; } /* select */
+  #bar button:nth-of-type(10) { --c:#cfd3d8; } /* chip */ #bar button:nth-of-type(11) { --c:#f0861a; } /* zener */
+  #bar button:nth-of-type(12) { --c:#7c8da6; } /* schottky */ #bar button:nth-of-type(13) { --c:#19b3a3; } /* switch */
+  #bar button:nth-of-type(14) { --c:#ee4d96; } /* clock */
+  /* the part-colour band, the same colour the part has on the board and in the key below */
+  #bar button:nth-of-type(-n+14):not(:nth-of-type(9))::before { content:''; flex:none; width:5px; height:16px; border-radius:2px; background:var(--c); transition:height .12s; }
+  #bar button.on:nth-of-type(-n+14)::before { height:20px; box-shadow:0 0 8px var(--c); }
+  #bar button:nth-of-type(9) { justify-content:center; }
+  #bar input { width:92px; padding:8px 10px; border:1px solid var(--trace); border-radius:6px; background:var(--mask-0); color:var(--gold-hi); font:500 15px var(--mono); text-align:center; }
+  #bar input:focus { outline:2px solid var(--gold-hi); outline-offset:1px; border-color:transparent; }
+  #bar input:disabled { opacity:.35; }
+  #bar input[type=range] { accent-color:var(--gold); padding:0; width:100%; }
+  #bar input ~ button { background:transparent; }
+  #bar input ~ button:hover { background:var(--mask-3); }
+  #bar input ~ button.on { background:rgba(232,182,74,.16); }
+  #bar select + button { font-family:var(--font-display); font-weight:600; border-color:var(--trace-hi); }  /* current chip name */
+  #bar button.run { background:var(--gold); border-color:var(--gold); color:var(--gold-ink); justify-content:center; font-weight:700; box-shadow:0 0 0 0 rgba(232,182,74,.5); }
+  #bar button.run:hover { background:var(--gold-hi); border-color:var(--gold-hi); box-shadow:0 0 18px rgba(232,182,74,.35); }
+
+  /* ---- the board sits in a mounting frame with four screw holes ---- */
+  #app { overflow:auto; max-width:100%; margin:16px 0 8px; padding:30px 30px 34px; -webkit-overflow-scrolling:touch; border:1px solid var(--trace); border-radius:12px;
+    background:
+      radial-gradient(circle at 15px 15px,var(--mask-0) 0 4px,var(--gold) 4.5px 7px,transparent 7.5px) left top/30px 30px no-repeat,
+      radial-gradient(circle at 15px 15px,var(--mask-0) 0 4px,var(--gold) 4.5px 7px,transparent 7.5px) right top/30px 30px no-repeat,
+      radial-gradient(circle at 15px 15px,var(--mask-0) 0 4px,var(--gold) 4.5px 7px,transparent 7.5px) left bottom/30px 30px no-repeat,
+      radial-gradient(circle at 15px 15px,var(--mask-0) 0 4px,var(--gold) 4.5px 7px,transparent 7.5px) right bottom/30px 30px no-repeat,
+      var(--mask-0); box-shadow:inset 0 2px 14px rgba(0,0,0,.45); }
+  #app svg { filter:drop-shadow(0 12px 20px rgba(0,0,0,.55)); }
+
+  /* ---- console ---- */
+  #out { margin:8px 0 0; padding:14px 16px; min-height:68px; background:var(--mask-0); border:1px solid var(--trace); border-left:4px solid var(--gold); border-radius:8px; color:#d7efe0; font:13.5px/1.55 var(--mono); white-space:pre-wrap; }
+
+  /* ---- chip gallery (src/icpicker.ts) ---- */
+  #icpicker { margin:10px 0 0; background:var(--mask-2); border:1px solid var(--gold); border-radius:12px; box-shadow:0 24px 60px rgba(0,0,0,.6); }
+  #icpicker[hidden] { display:none; }
+  .icp-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid var(--trace); font:600 17px var(--font-display); }
+  .icp-head span { margin-left:10px; color:var(--silk-dim); font:400 13px var(--font-ui); }
+  .icp-body { position:relative; max-height:min(64vh,620px); overflow:auto; padding:4px 14px 16px; -webkit-overflow-scrolling:touch; }
+  .icp-body summary { display:flex; align-items:center; gap:8px; padding:12px 2px 6px; cursor:pointer; list-style:none; font:600 15px var(--font-display); }
+  .icp-body summary::-webkit-details-marker { display:none; }
+  .icp-body summary::before { content:''; width:7px; height:7px; border-right:2px solid var(--gold); border-bottom:2px solid var(--gold); transform:rotate(-45deg); transition:transform .12s; }
+  .icp-body details[open] > summary::before { transform:rotate(45deg); }
+  .icp-body summary small { color:var(--silk-dim); font:500 13px var(--font-ui); }
+  .icp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; padding:4px 0 8px; }
+  .icp-tile { display:flex; flex-direction:column; align-items:stretch; gap:3px; min-width:0; min-height:0; padding:8px; text-align:left; font-weight:400; background:transparent; border:1px solid transparent; border-radius:8px; }
+  .icp-tile:hover { background:var(--mask-3); border-color:var(--trace-hi); }
+  .icp-tile[aria-pressed="true"] { background:rgba(232,182,74,.14); border-color:var(--gold); }
+  .icp-img { display:block; margin-bottom:4px; background:#f3efe2; border-radius:6px; } /* same cream as the board, so the dark chips stand out */
+  .icp-img svg { display:block; width:100%; height:auto; filter:none; }
+  .icp-name { font:600 15px var(--font-display); }
+  .icp-pkg { color:var(--silk-dim); font-size:12px; }
+  .icp-what { font-size:13.5px; }
+  .icp-use { color:var(--silk-dim); font-size:13px; }
+  .icp-use b { color:var(--silk); font-weight:600; }
+  .icp-x { padding:4px 10px; }
+
+  /* ---- graph panel ---- */
+  #graph { margin:10px 0 0; }
+  #graph details { background:var(--mask-2); border:1px solid var(--trace); border-radius:10px; padding:0 14px; }
+  #graph summary { display:flex; align-items:center; gap:10px; padding:13px 2px; cursor:pointer; list-style:none; font:600 16px var(--font-display); }
+  #graph summary::-webkit-details-marker { display:none; }
+  #graph summary::before { content:''; width:8px; height:8px; border-right:2px solid var(--gold); border-bottom:2px solid var(--gold); transform:rotate(-45deg); transition:transform .12s; }
+  #graph details[open] > summary::before { transform:rotate(45deg); }
+  #graph .gbody { padding-bottom:14px; }
+  #graph .gtabs { display:flex; gap:6px; margin-bottom:12px; }
+  #graph .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; }
+  #graph label { display:flex; flex-direction:column; gap:4px; color:var(--silk-dim); font-size:13px; }
+  #graph select, #graph input { padding:8px 9px; border:1px solid var(--trace); border-radius:6px; background:var(--mask-0); color:var(--silk); font:inherit; min-width:0; }
+  #graph input[type=checkbox] { accent-color:var(--gold); }
+  #graph .gact { display:flex; gap:8px; margin:12px 0 6px; }
+  #graph .gact .run { background:var(--gold); border-color:var(--gold); color:var(--gold-ink); font-weight:700; }
+  #graph .gact .run:hover { background:var(--gold-hi); }
+  #graph .gcalc { margin-top:12px; padding:12px 14px; background:var(--mask-0); border:1px solid var(--trace); border-radius:8px; }
+  #graph .gcalc h4 { margin:0 0 8px; font:600 14px var(--font-display); color:var(--gold); }
+  #graph dl { display:grid; grid-template-columns:minmax(120px,max-content) 1fr; gap:4px 14px; margin:0; font-size:13.5px; }
+  #graph dt { color:var(--silk-dim); } #graph dd { margin:0; font-family:var(--mono); word-break:break-word; }
+  #graph .mean { display:block; margin-top:2px; font:12.5px/1.4 var(--font-ui); color:var(--silk-dim); }
   #g-calc.noexp .mean { display:none; }
   #graph .gexp { flex-direction:row; align-items:center; gap:6px; margin-left:auto; } #graph .gexp input { width:auto; min-height:0; }
-  #graph ul { margin:0; padding-left:18px; font:12.5px/1.6 ui-monospace,Menlo,Consolas,monospace; }
-  @media (max-width:520px) { #graph dl { grid-template-columns:1fr; gap:0; } #graph dd { margin-bottom:6px; } }
-  #graph .gmsg { margin:6px 0; font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace; color:var(--text); }
-  @media (pointer:coarse) { #graph select, #graph input { min-height:44px; font-size:16px; } }
-  .legend { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 14px; margin:14px 0 0; color:var(--muted); font-size:12px; }
-  .legend i { display:inline-block; width:18px; height:6px; border-radius:3px; margin-right:5px; vertical-align:middle; }
-  .legend b { color:var(--text); font-weight:600; }
+  #graph ul { margin:0; padding-left:18px; font:13px/1.6 var(--mono); }
+  #graph .gmsg { margin:6px 0; font:13px/1.5 var(--mono); color:var(--silk); }
+  /* the charts hard-code their colours as attributes; CSS wins over attributes, so re-skin them to the mask palette here */
+  #g-out svg { fill:var(--silk); font-family:var(--font-ui); }
+  #g-out svg [fill="#10141a"] { fill:var(--mask-0); }
+  #g-out svg [fill="#8b95a3"] { fill:var(--silk-dim); }
+  #g-out svg [stroke="#2c3541"], #g-out svg [stroke="#222b36"] { stroke:#1d4638; }
+  #g-out svg [stroke="#42505f"] { stroke:var(--trace-hi); }
+
+  /* ---- key ---- */
+  .legend { display:flex; flex-wrap:wrap; gap:8px 20px; margin:22px 0 0; padding-top:14px; border-top:1px solid var(--trace); color:var(--silk-dim); font-size:13.5px; }
+  .legend i { display:inline-block; width:5px; height:14px; border-radius:2px; margin-right:7px; vertical-align:-2px; }
+  .legend b { color:var(--silk); font-weight:600; }
+
   body, button { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   @media (pointer:coarse) { /* phones / tablets: finger-sized controls */
     button { min-height:44px; min-width:44px; font-size:15px; }
-    #bar { gap:8px; padding:10px 8px; }
-    #bar input { min-height:44px; width:92px; font-size:16px; } /* 16px stops iOS zooming the page on focus */
+    #bar input { min-height:44px; width:96px; font-size:16px; } /* 16px stops iOS zooming the page on focus */
+    #graph select, #graph input { min-height:44px; font-size:16px; }
     #out { font-size:14px; }
   }
-  @media (max-width:480px) { h1 { font-size:19px; } button { padding:6px 9px; } }
-  /* chip picker gallery (src/icpicker.ts) */
-  #icpicker { margin:10px 0 0; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,.25); }
-  #icpicker[hidden] { display:none; }
-  .icp-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-bottom:1px solid var(--line); font-weight:600; }
-  .icp-head span { margin-left:8px; color:var(--muted); font-size:12px; font-weight:400; }
-  .icp-body { position:relative; max-height:min(60vh,560px); overflow:auto; padding:4px 12px 14px; -webkit-overflow-scrolling:touch; }
-  .icp-body summary { display:flex; align-items:center; gap:8px; padding:10px 2px 6px; cursor:pointer; list-style:none; font-size:14px; }
-  .icp-body summary::-webkit-details-marker { display:none; }
-  .icp-body summary::before { content:''; width:7px; height:7px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(-45deg); transition:transform .12s; }
-  .icp-body details[open] > summary::before { transform:rotate(45deg); }
-  .icp-body summary small { color:var(--muted); }
-  .icp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; padding:4px 0 8px; }
-  .icp-tile { display:flex; flex-direction:column; align-items:stretch; gap:3px; min-width:0; min-height:0; padding:8px; text-align:left; font-weight:400; background:transparent; border:1px solid transparent; border-radius:8px; }
-  .icp-tile:hover { background:#2a323d; border-color:#42505f; }
-  .icp-tile[aria-pressed="true"] { background:rgba(47,129,247,.18); border-color:var(--accent); }
-  .icp-img { display:block; margin-bottom:4px; background:#f3efe2; border-radius:6px; } /* same cream as the board, so the dark chips stand out */
-  .icp-img svg { display:block; width:100%; height:auto; filter:none; }
-  .icp-name { font-size:14px; font-weight:600; }
-  .icp-pkg { color:var(--muted); font-size:11px; }
-  .icp-what { font-size:12.5px; }
-  .icp-use { color:var(--muted); font-size:12px; }
-  .icp-use b { color:var(--text); font-weight:600; }
-  .icp-x { padding:4px 9px; }
-  @media (max-width:480px) { .icp-grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); } .icp-head span { display:none; } }
+  @media (max-width:520px) { #graph dl { grid-template-columns:1fr; gap:0; } #graph dd { margin-bottom:6px; } }
+  @media (max-width:480px) { button { padding:7px 10px; } #app { padding:22px 12px 26px; } .icp-grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); } .icp-head span { display:none; } }
+
+  /* ---- wide screens: tool rail on the left, board and results on the right ---- */
+  @media (min-width:1000px) {
+    main { display:grid; grid-template-columns:268px minmax(0,1fr); grid-template-areas:"head head" "bar app" "bar out" "bar graph" "key key"; column-gap:24px; align-items:start; }
+    header { grid-area:head; } #app { grid-area:app; margin:0 0 4px; } #out { grid-area:out; width:100%; } #graph { grid-area:graph; width:100%; } .legend { grid-area:key; }
+    #icpicker { grid-area:app; z-index:20; margin:0; }           /* the gallery opens over the board */
+    #bar { grid-area:bar; position:sticky; top:16px; display:grid; grid-template-columns:1fr 1fr; grid-auto-flow:dense; gap:8px; }
+    #bar button { width:100%; }
+    #bar input { width:100%; }
+    #bar input:not([type=range]) { order:1; grid-column:1/-1; }
+    #bar select + button { order:2; grid-column:1/-1; }          /* current chip */
+    #bar input[type=range] { order:3; grid-column:1/-1; }
+    #bar button.run { order:4; grid-column:1/-1; }
+    #bar input ~ button { order:5; }                              /* Undo, Clear */
+    #bar button[title^="Zoom"] { order:6; justify-content:center; }
+  }
+  @media (prefers-reduced-motion:reduce) { header::after { animation:none; } * { transition:none !important; } }
 </style>
 </head>
 <body>
